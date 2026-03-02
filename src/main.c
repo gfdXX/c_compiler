@@ -11,7 +11,6 @@ static void init()
     Putback = '\n';
 }
 
-// Print out a usage if started incorrectly
 static void usage(char *prog)
 {
     fprintf(stderr, "Usage: %s infile\n", prog);
@@ -21,8 +20,6 @@ static void usage(char *prog)
 // List of printable tokens
 char *tokstr[] = { "+", "-", "*", "/", "intlit" };
 
-// Loop scanning in all the tokens in the input file.
-// Print out details of each token found.
 static void scanfile() {
     struct token T;
 
@@ -41,6 +38,8 @@ static void scanfile() {
 
 void main(int argc, char *argv[])
 {
+    struct ASTnode *n;
+
     if (argc != 2)
     {
         usage(argv[0]);
@@ -54,6 +53,8 @@ void main(int argc, char *argv[])
         exit(1);
     }
 
-    scanfile();
+    scan(&Token);
+    n = binexpr(0);
+    printf("%d\n", interpretAST(n));
     exit(0);
 }

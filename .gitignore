@@ -1,0 +1,10 @@
+# Сборка
+build/
+*.o
+*.exe
+*.out
+
+# VSCode
+.vscode/
+.vscode/ipch/
+.vscode/browse.vc.db
