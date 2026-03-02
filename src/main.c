@@ -17,25 +17,6 @@ static void usage(char *prog)
     exit(1);
 }
 
-// List of printable tokens
-char *tokstr[] = { "+", "-", "*", "/", "intlit" };
-
-static void scanfile() {
-    struct token T;
-
-    while (scan(&T))
-    {
-        printf("Token %s", tokstr[T.token]);
-
-        if (T.token == T_INTLIT)
-        {
-            printf(", value %d", T.intvalue);
-        }
-        
-        printf("\n");
-    }
-}
-
 void main(int argc, char *argv[])
 {
     struct ASTnode *n;
@@ -47,14 +28,26 @@ void main(int argc, char *argv[])
 
     init();
 
+    // Open up the input file
     if ((Infile = fopen(argv[1], "r")) == NULL)
     {
         fprintf(stderr, "Unable to open %s: %s\n", argv[1], strerror(errno));
         exit(1);
     }
 
+    // Create the output file
+    if ((Outfile = fopen("out.txt", "w")) == NULL)
+    {
+        fprintf(stderr, "Unable to create out.s: %s\n", strerror(errno));
+        exit(1);
+    }
+
     scan(&Token);
     n = binexpr(0);
     printf("%d\n", interpretAST(n));
+
+    generatecode(n);
+
+    fclose(Outfile);
     exit(0);
 }
