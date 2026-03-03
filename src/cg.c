@@ -13,7 +13,7 @@ static char *reglist[4] = { "%r8", "%r9", "%r10", "%r11" };
  */
 void freeall_registers(void)
 {
-  freereg[0] = freereg[1] = freereg[2] = freereg[3] = 1;
+    freereg[0] = freereg[1] = freereg[2] = freereg[3] = 1;
 }
 
 /**

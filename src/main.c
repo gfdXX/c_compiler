@@ -36,17 +36,16 @@ void main(int argc, char *argv[])
     }
 
     // Create the output file
-    if ((Outfile = fopen("out.txt", "w")) == NULL)
+    if ((Outfile = fopen("out.s", "w")) == NULL)
     {
         fprintf(stderr, "Unable to create out.s: %s\n", strerror(errno));
         exit(1);
     }
 
     scan(&Token);
-    n = binexpr(0);
-    printf("%d\n", interpretAST(n));
-
-    generatecode(n);
+    genpreamble();
+    statements();
+    genpostamble();
 
     fclose(Outfile);
     exit(0);
