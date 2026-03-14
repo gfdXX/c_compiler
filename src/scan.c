@@ -72,8 +72,7 @@ static int scanident(int c, char *buf, int lim) {
     {
         if (lim - 1 == i) 
         {
-            printf("identifier too long on line %d\n", Line);
-            exit(1);
+            fatal("Identifier too long");
         } else if (i < lim - 1)
         {
             buf[i++] = c;
@@ -155,6 +154,7 @@ int scan(struct token *t)
                 }
 
                 t->token = T_IDENT;
+                break;
             }
 
             fatalc("Unrecognised character", c);
