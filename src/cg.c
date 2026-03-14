@@ -36,8 +36,7 @@ static int alloc_register(void)
         }
     }
 
-    fprintf(stderr, "Out of registers!\n");
-    exit(1);
+    fatal("Out of registers");
 }
 
 /**
@@ -53,8 +52,7 @@ static void free_register(int reg)
 {
     if (freereg[reg] != 0)
     {
-        fprintf(stderr, "Error trying to free register %d\n", reg);
-        exit(1);
+        fatald("Error trying to free register", reg);
     }
 
     freereg[reg] = 1;
@@ -129,13 +127,32 @@ void cgpostamble()
  * @param[in] value The integer value to load
  * @return The number of the register containing the loaded value
  */
-int cgload(int value) {
+int cgloadint(int value)
+{
 
     // Get a new register
     int r = alloc_register();
 
     // Print out the code to initialise it
     fprintf(Outfile, "\tmovq\t$%d, %s\n", value, reglist[r]);
+    return(r);
+}
+
+/**
+ * @brief Load a value from a variable into a register.
+ * @ingroup CodeGeneration
+ * @details Allocates a new register and generates a movq instruction to load
+ *          an integer literal into that register
+ * @param[in] identifier The variable identifier
+ * @return Return the number of the register
+ */
+int cgloadglob(char *identifier)
+{
+    // Get a new register
+    int r = alloc_register();
+
+    // Print out the code to initialise it
+    fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", identifier, reglist[r]);
     return(r);
 }
 
@@ -148,7 +165,8 @@ int cgload(int value) {
  * @param[in] r2 Number of the second register (addend, result)
  * @return The number of the register containing the addition result (r2)
  */
-int cgadd(int r1, int r2) {
+int cgadd(int r1, int r2)
+{
     fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r1], reglist[r2]);
     free_register(r1);
 
@@ -164,7 +182,8 @@ int cgadd(int r1, int r2) {
  * @param[in] r2 Number of the second register (multiplier, result)
  * @return The number of the register containing the multiplication result (r2)
  */
-int cgmul(int r1, int r2) {
+int cgmul(int r1, int r2)
+{
     fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r1], reglist[r2]);
     free_register(r1);
 
@@ -180,7 +199,8 @@ int cgmul(int r1, int r2) {
  * @param[in] r2 Number of the second register (subtrahend, will be freed)
  * @return The number of the register containing the subtraction result (r1)
  */
-int cgsub(int r1, int r2) {
+int cgsub(int r1, int r2)
+{
     fprintf(Outfile, "\tsubq\t%s, %s\n", reglist[r2], reglist[r1]);
     free_register(r2);
 
@@ -199,7 +219,8 @@ int cgsub(int r1, int r2) {
  * @param[in] r2 Number of the second register (divisor, will be freed)
  * @return The number of the register containing the division result (r1)
  */
-int cgdiv(int r1, int r2) {
+int cgdiv(int r1, int r2)
+{
     fprintf(Outfile, "\tmovq\t%s,%%rax\n", reglist[r1]);
     fprintf(Outfile, "\tcqo\n");
     fprintf(Outfile, "\tidivq\t%s\n", reglist[r2]);
@@ -218,8 +239,32 @@ int cgdiv(int r1, int r2) {
  *          - Frees the used register
  * @param[in] r Number of the register containing the integer value to print
  */
-void cgprintint(int r) {
+void cgprintint(int r)
+{
     fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]);
     fprintf(Outfile, "\tcall\tprintint\n");
     free_register(r);
+}
+
+/**
+ * @brief Store a register's value into a variable
+ * @ingroup CodeGeneration
+ * @param[in] r Number of the register containing the integer value to print
+ * @param[in] identifier Number of the register identifier
+ * @return The number of the register containing the value that was stored (r)
+ */
+int cgstorglob(int r, char *identifier)
+{
+    fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], identifier);
+    return (r);
+}
+
+/**
+ * @brief Generate a global symbol
+ * @ingroup CodeGeneration
+ * @param[in] sym Name of the global symbol to generate
+ */
+void cgglobsym(char *sym)
+{
+    fprintf(Outfile, "\t.comm\t%s,8,8\n", sym);
 }

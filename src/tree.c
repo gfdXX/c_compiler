@@ -11,8 +11,7 @@ struct ASTnode *mkastnode(int op, struct ASTnode *left,
 
     if(n == NULL)
     {
-        fprintf(stderr, "Unable to malloc in mkastnode()\n");
-        exit(1);
+        fatal("Unable to malloc in mkastnode()");
     }
 
     n->op = op;
