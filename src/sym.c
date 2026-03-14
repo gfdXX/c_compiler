@@ -30,8 +30,9 @@ static int newglob(void)
     if ((p = Globs++) >= NSYMBOLS)
     {
         fatal("Too many global symbols");
-        return (p);
     }
+
+    return (p);
 }
 
 // Add a global symbol to the symbol table.
@@ -50,6 +51,6 @@ int addglob(char *name)
     // return the slot number
     y = newglob();
     Gsym[y].name = strdup(name);
-    
+
     return (y);
 }

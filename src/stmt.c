@@ -49,19 +49,19 @@ void statements(void)
     {
         switch (Token.token)
         {
-        case T_PRINT:
-            print_statement();
-            break;
-        case T_INT:
-            var_declaration();
-            break;
-        case T_IDENT:
-            assignment_statement();
-            break;
-        case T_EOF:
-            return;
-        default:
-            fatald("Syntax error, token", Token.token);
+            case T_PRINT:
+                print_statement();
+                break;
+            case T_INT:
+                var_declaration();
+                break;
+            case T_IDENT:
+                assignment_statement();
+                break;
+            case T_EOF:
+                return;
+            default:
+                fatald("Syntax error, token", Token.token);
         }
     }
     
