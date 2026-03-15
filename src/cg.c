@@ -4,6 +4,7 @@
 
 static int freereg[4];
 static char *reglist[4] = { "%r8", "%r9", "%r10", "%r11" };
+static char *breglist[4] = { "%r8b", "%r9b", "%r10b", "%r11b" };
 
 /**
  * @brief Sets all registers as available
@@ -267,4 +268,50 @@ int cgstorglob(int r, char *identifier)
 void cgglobsym(char *sym)
 {
     fprintf(Outfile, "\t.comm\t%s,8,8\n", sym);
+}
+
+/**
+ * @brief Compare two registers and set the result in a register
+ * @ingroup CodeGeneration
+ * @param[in] r1 Number of the register containing the integer value to print
+ * @param[in] r2 Number of the register containing the integer value to print
+ * @param[in] how String indicating the comparison operation (e.g. "je" for equal, "jl" for less than)
+ * @return The number of the register containing the value that was stored (r)
+ */
+static int cgcompare(int r1, int r2, char *how) {
+    fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+    fprintf(Outfile, "\t%s\t%s\n", how, breglist[r2]);
+    fprintf(Outfile, "\tandq\t$255,%s\n", reglist[r2]);
+    free_register(r1);
+    return (r2);
+}
+
+int cgequal(int r1, int r2)
+{
+    return(cgcompare(r1, r2, "sete"));
+}
+
+int cgnotequal(int r1, int r2)
+{
+    return(cgcompare(r1, r2, "setne"));
+}
+
+int cglessthan(int r1, int r2)
+{
+    return(cgcompare(r1, r2, "setl"));
+}
+
+int cggreaterthan(int r1, int r2)
+{
+    return(cgcompare(r1, r2, "setg"));
+}
+
+int cglessequal(int r1, int r2)
+{
+    return(cgcompare(r1, r2, "setle"));
+}
+
+int cggreaterequal(int r1, int r2)
+{
+    return(cgcompare(r1, r2, "setge"));
 }
