@@ -29,7 +29,7 @@ static struct ASTnode *primary(void)
     return (n);
 }
 
-int arithop(int tokentype)
+static arithop(int tokentype)
 {
     switch (tokentype)
     {

@@ -64,5 +64,4 @@ void statements(void)
                 fatald("Syntax error, token", Token.token);
         }
     }
-    
 }

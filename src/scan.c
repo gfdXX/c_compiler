@@ -18,7 +18,7 @@ static int next(void)
     {
         c = Putback;
         Putback = 0;
-        return c;
+        return (c);
     }
     
     c = fgetc(Infile);
@@ -73,7 +73,8 @@ static int scanident(int c, char *buf, int lim) {
         if (lim - 1 == i) 
         {
             fatal("Identifier too long");
-        } else if (i < lim - 1)
+        }
+        else if (i < lim - 1)
         {
             buf[i++] = c;
         }
