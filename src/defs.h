@@ -42,7 +42,8 @@ enum
     T_PRINT,
     T_INT,
     T_IF,
-    T_ELSE
+    T_ELSE,
+    T_WHILE,
 };
 
 enum
@@ -66,7 +67,8 @@ enum
     A_PRINT,
 
     A_GLUE,
-    A_IF
+    A_IF,
+    A_WHILE,
 };
 
 struct ASTnode
