@@ -2,7 +2,7 @@
 #include "data.h"
 #include "decl.h"
 
-void print_statement(void)
+static struct ASTnode *print_statement(void)
 {
     struct ASTnode *tree;
     int reg;
@@ -10,14 +10,14 @@ void print_statement(void)
     match(T_PRINT, "print");
 
     tree = binexpr(0);
-    reg = genAST(tree, -1);
-    genprintint(reg);
-    genfreeregs();
+    tree = mkastunary(A_PRINT, tree, 0);
 
     semi();
+
+    return (tree);
 }
 
-void assignment_statement(void)
+static struct ASTnode *assignment_statement(void)
 {
     struct ASTnode *left, *right, *tree;
     int id;
@@ -34,34 +34,82 @@ void assignment_statement(void)
 
     left = binexpr(0);
 
-    tree = mkastnode(A_ASSIGN, left, right, 0);
-
-    genAST(tree, -1);
-    genfreeregs();
+    tree = mkastnode(A_ASSIGN, left, NULL, right, 0);
 
     semi();
+    
+    return (tree);
 }
 
-
-void statements(void)
+struct ASTnode *if_statement(void)
 {
+    struct ASTnode *condAST, *trueAST, *falseAST = NULL;
+    
+    match(T_IF, "if");
+    lparen();
+
+    condAST = binexpr(0);
+
+    if (condAST->op < A_EQ || condAST->op > A_GE)
+    {
+        fatal("Bad comparison operator");
+    }
+    
+    rparen();
+
+    trueAST = compound_statement();
+
+    if (Token.token == T_ELSE)
+    {
+        scan(&Token);
+        falseAST = compound_statement();
+    }
+
+    return (mkastnode(A_IF, condAST, trueAST, falseAST, 0));
+}
+
+struct ASTnode *compound_statement(void)
+{
+    struct ASTnode *left = NULL;
+    struct ASTnode *tree;
+
+    lbrace();
+
     while (1)
     {
         switch (Token.token)
         {
             case T_PRINT:
-                print_statement();
+                tree = print_statement();
                 break;
             case T_INT:
                 var_declaration();
+                tree = NULL;
                 break;
             case T_IDENT:
-                assignment_statement();
+                tree = assignment_statement();
                 break;
-            case T_EOF:
-                return;
+            case T_IF:
+                tree = if_statement();
+                break;
+            case T_RBRACE:
+                rbrace();
+                return (left);
             default:
                 fatald("Syntax error, token", Token.token);
         }
+
+        if (tree)
+        {
+            if (left == NULL)
+            {
+                left = tree;
+            }
+            else
+            {
+                left = mkastnode(A_GLUE, left, NULL, tree, 0);
+            }
+        }
+        
     }
 }
