@@ -4,6 +4,7 @@
 
 extern_ int         Line;
 extern_ int         Putback;
+extern_ int         Functionid;                 // Symbol id of the current function
 extern_ FILE        *Infile;
 extern_ FILE	    *Outfile;
 extern_ struct      token Token;

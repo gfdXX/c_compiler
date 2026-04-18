@@ -14,7 +14,7 @@ static int next(void)
 {
     int c;
 
-    if(Putback)
+    if (Putback)
     {
         c = Putback;
         Putback = 0;
@@ -92,6 +92,12 @@ static int keyword(char *s)
 {
     switch (*s)
     {
+        case 'c':
+            if (!strcmp(s, "char"))
+            {
+                return (T_CHAR);
+            }
+            break;
         case 'e':
             if (!strcmp(s, "else"))
             {
@@ -114,10 +120,22 @@ static int keyword(char *s)
                 return (T_INT);
             }
             break;
+        case 'l':
+            if (!strcmp(s, "long"))
+            {
+                return (T_LONG);
+            }
+            break;
         case 'p':
             if (!strcmp(s, "print"))
             {
                 return (T_PRINT);
+            }
+            break;
+        case 'r':
+            if (!strcmp(s, "return"))
+            {
+                return (T_RETURN);
             }
             break;
         case 'w':
@@ -136,9 +154,31 @@ static int keyword(char *s)
     return (0);
 }
 
+// A pointer to a rejected token
+static struct token *Rejtoken = NULL;
+
+// Reject the token that we just scanned
+void reject_token(struct token *t)
+{
+    if (Rejtoken != NULL)
+    {
+        fatal("Can't reject token twice");
+    }
+
+    Rejtoken = t;
+}
+
 int scan(struct token *t)
 {
     int c, tokentype;
+
+    // If we have any rejected token, return it
+    if (Rejtoken != NULL)
+    {
+        t = Rejtoken;
+        Rejtoken = NULL;
+        return (1);
+    }
 
     c = skip();
 

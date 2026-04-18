@@ -6,16 +6,10 @@
 #define TEXTLEN     512     // Length of symbols in input
 #define NSYMBOLS    1024    // Number of symbol table entries
 
-struct token 
-{
-    int token;
-    int intvalue;
-};
-
 enum
 {
     T_EOF,
-    
+    // Operators
     T_PLUS,
     T_MINUS,
     T_STAR,
@@ -27,7 +21,12 @@ enum
     T_GT,
     T_LE,
     T_GE,
-
+    // Type keywords
+    T_VOID,
+    T_CHAR,
+    T_INT,
+    T_LONG,
+    // Structural tokens
     T_INTLIT,
     T_SEMI,
     T_ASSIGN,
@@ -38,14 +37,19 @@ enum
     T_LPAREN,
     T_RPAREN,
 
-    // Keywords
+    // Other keywords
     T_PRINT,
-    T_INT,
     T_IF,
     T_ELSE,
     T_WHILE,
     // T_FOR,
-    T_VOID,
+    T_RETURN,
+};
+
+struct token 
+{
+    int token;
+    int intvalue;
 };
 
 enum
@@ -72,28 +76,52 @@ enum
     A_IF,
     A_WHILE,
     A_FUNCTION,
+    A_WIDEN,
+    A_RETURN,
+    A_FUNCCALL,
+};
+
+// Primitive types
+enum
+{
+    P_NONE,
+    P_VOID,
+    P_CHAR,
+    P_INT,
+    P_LONG,
 };
 
 struct ASTnode
 {
-    int     op;
-    struct  ASTnode *left;
+    int     op;                 // "Operation" to be performed on this tree
+    int     type;               // Type of any expression this tree generates
+    struct  ASTnode *left;      // Left, middle and right child trees
     struct  ASTnode *mid;
     struct  ASTnode *right;
 
-    union
+    union                       // For A_INTLIT, the integer value
     {
-        int intvalue;
-        int id;
-    } v;
+        int intvalue;           // For A_IDENT, the symbol slot number
+        int id;                 // For A_FUNCTION, the symbol slot number
+    } v;                        // For A_FUNCCALL, the symbol slot number
     
 };
 
 #define NOREG	-1		// Use NOREG when the AST generation
                 // functions have no register to return
 
+                // Structural types
+enum
+{
+    S_VARIABLE,
+    S_FUNCTION
+};
+
 struct symtable
 {
-    char *name;
+    char *name;         // Name of a symbol
+    int type;			// Primitive type for the symbol
+    int stype;			// Structural type for the symbol
+    int endlabel;	    // For S_FUNCTIONs, the end label
 };
 

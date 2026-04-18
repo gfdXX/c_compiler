@@ -1,7 +1,9 @@
-void main()
-{
-  int i;
-  for (i= 1; i <= 10; i= i + 1) {
-    print i;
-  }
+int fred() {
+  return(5);
+}
+
+void main() {
+  int x;
+  x= fred(2);
+  print x;
 }

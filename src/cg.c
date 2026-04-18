@@ -5,6 +5,7 @@
 static int freereg[4];
 static char *reglist[4] = { "%r8", "%r9", "%r10", "%r11" };
 static char *breglist[4] = { "%r8b", "%r9b", "%r10b", "%r11b" };
+static char *dreglist[4] = { "%r8d", "%r9d", "%r10d", "%r11d" };
 
 /**
  * @brief Sets all registers as available
@@ -72,23 +73,7 @@ static void free_register(int reg)
 void cgpreamble()
 {
     freeall_registers();
-    fputs
-    (
-        "\t.text\n"
-        ".LC0:\n"
-        "\t.string\t\"%d\\n\"\n"
-        "printint:\n"
-        "\tpushq\t%rbp\n"
-        "\tmovq\t%rsp, %rbp\n"
-        "\tsubq\t$16, %rsp\n"
-        "\tmovl\t%edi, -4(%rbp)\n"
-        "\tmovl\t-4(%rbp), %eax\n"
-        "\tmovl\t%eax, %esi\n"
-        "\tleaq	.LC0(%rip), %rdi\n"
-        "\tmovl	$0, %eax\n"
-        "\tcall	printf@PLT\n" "\tnop\n" "\tleave\n" "\tret\n" "\n"
-        , Outfile
-    );
+    fputs("\t.text\n", Outfile);
 }
 
 /**
@@ -100,8 +85,9 @@ void cgpreamble()
  *          - Returns from main function
  * @note This function must be called after generating all executable code
  */
-void cgfuncpreamble(char *name)
+void cgfuncpreamble(int id)
 {
+    char *name = Gsym[id].name;
     fprintf(Outfile,
         "\t.text\n"
         "\t.globl\t%s\n"
@@ -110,9 +96,10 @@ void cgfuncpreamble(char *name)
         "\tmovq\t%%rsp, %%rbp\n", name, name, name);
 }
 
-void cgfuncpostamble()
+void cgfuncpostamble(int id)
 {
-    fputs("\tmovl	$0, %eax\n" "\tpopq	%rbp\n" "\tret\n", Outfile);
+    cglabel(Gsym[id].endlabel);
+    fputs("\tpopq	%rbp\n" "\tret\n", Outfile);
 }
 
 /**
@@ -123,7 +110,7 @@ void cgfuncpostamble()
  * @param[in] value The integer value to load
  * @return The number of the register containing the loaded value
  */
-int cgloadint(int value)
+int cgloadint(int value, int type)
 {
 
     // Get a new register
@@ -142,13 +129,29 @@ int cgloadint(int value)
  * @param[in] identifier The variable identifier
  * @return Return the number of the register
  */
-int cgloadglob(char *identifier)
-{
+int cgloadglob(int id) {
     // Get a new register
     int r = alloc_register();
 
     // Print out the code to initialise it
-    fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", identifier, reglist[r]);
+    switch (Gsym[id].type)
+    {
+        case P_CHAR:
+            fprintf(Outfile, "\tmovzbq\t%s(\%%rip), %s\n", Gsym[id].name,
+                reglist[r]);
+            break;
+        case P_INT:
+            fprintf(Outfile, "\tmovzbl\t%s(\%%rip), %s\n", Gsym[id].name,
+                reglist[r]);
+            break;
+        case P_LONG:
+            fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", Gsym[id].name,
+                reglist[r]);
+            break;
+        default:
+            fatald("Bad type in cgloadglob:", Gsym[id].type);
+    }
+
     return (r);
 }
 
@@ -170,23 +173,6 @@ int cgadd(int r1, int r2)
 }
 
 /**
- * @brief Performs multiplication of two registers
- * @ingroup CodeGeneration
- * @details Generates an imulq instruction to multiply the values in two registers.
- *          The result is stored in the second register, the first register is freed
- * @param[in] r1 Number of the first register (multiplier, will be freed)
- * @param[in] r2 Number of the second register (multiplier, result)
- * @return The number of the register containing the multiplication result (r2)
- */
-int cgmul(int r1, int r2)
-{
-    fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r1], reglist[r2]);
-    free_register(r1);
-
-    return(r2);
-}
-
-/**
  * @brief Performs subtraction of registers (r1 - r2)
  * @ingroup CodeGeneration
  * @details Generates a subq instruction to subtract the second register from the first.
@@ -201,6 +187,23 @@ int cgsub(int r1, int r2)
     free_register(r2);
 
     return (r1);
+}
+
+/**
+ * @brief Performs multiplication of two registers
+ * @ingroup CodeGeneration
+ * @details Generates an imulq instruction to multiply the values in two registers.
+ *          The result is stored in the second register, the first register is freed
+ * @param[in] r1 Number of the first register (multiplier, will be freed)
+ * @param[in] r2 Number of the second register (multiplier, result)
+ * @return The number of the register containing the multiplication result (r2)
+ */
+int cgmul(int r1, int r2)
+{
+    fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r1], reglist[r2]);
+    free_register(r1);
+
+    return (r2);
 }
 
 /**
@@ -242,6 +245,19 @@ void cgprintint(int r)
     free_register(r);
 }
 
+// Call a function with one argument from the given register
+// Return the register with the result
+int cgcall(int r, int id)
+{
+    // Get a new register
+    int outr = alloc_register();
+    fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]);
+    fprintf(Outfile, "\tcall\t%s\n", Gsym[id].name);
+    fprintf(Outfile, "\tmovq\t%%rax, %s\n", reglist[outr]);
+    free_register(r);
+    return (outr);
+}
+
 /**
  * @brief Store a register's value into a variable
  * @ingroup CodeGeneration
@@ -249,10 +265,43 @@ void cgprintint(int r)
  * @param[in] identifier Number of the register identifier
  * @return The number of the register containing the value that was stored (r)
  */
-int cgstorglob(int r, char *identifier)
+int cgstorglob(int r, int id)
 {
-    fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], identifier);
-    return (r);
+    switch (Gsym[id].type)
+    {
+        case P_CHAR:
+            fprintf(Outfile, "\tmovb\t%s, %s(\%%rip)\n", breglist[r],
+                Gsym[id].name);
+            break;
+        case P_INT:
+            fprintf(Outfile, "\tmovl\t%s, %s(\%%rip)\n", dreglist[r],
+                Gsym[id].name);
+            break;
+        case P_LONG:
+            fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r],
+                Gsym[id].name);
+            break;
+        default:
+            fatald("Bad type in cgloadglob:", Gsym[id].type);
+    }
+  return (r);
+}
+
+// Array of type sizes in P_XXX order.
+// 0 means no size.
+static int psize[] = { 0, 0, 1, 4, 8 };
+
+// Given a P_XXX type value, return the
+// size of a primitive type in bytes.
+int cgprimsize(int type)
+{
+    // Check the type is valid
+    if (type < P_NONE || type > P_LONG)
+    {
+        fatal("Bad type in cgprimsize()");
+    }
+
+    return (psize[type]);
 }
 
 /**
@@ -260,9 +309,13 @@ int cgstorglob(int r, char *identifier)
  * @ingroup CodeGeneration
  * @param[in] sym Name of the global symbol to generate
  */
-void cgglobsym(char *sym)
+void cgglobsym(int id)
 {
-    fprintf(Outfile, "\t.comm\t%s,8,8\n", sym);
+    int typesize;
+    // Get the size of the type
+    typesize = cgprimsize(Gsym[id].type);
+
+    fprintf(Outfile, "\t.comm\t%s,%d,%d\n", Gsym[id].name, typesize, typesize);
 }
 
 // List of comparison instructions,
@@ -320,4 +373,35 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label)
     fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
     freeall_registers();
     return (NOREG);
+}
+
+// Widen the value in the register from the old
+// to the new type, and return a register with
+// this new value
+int cgwiden(int r, int oldtype, int newtype)
+{
+    // Nothing to do
+    return (r);
+}
+
+// Generate code to return a value from a function
+void cgreturn(int reg, int id)
+{
+    // Generate code depending on the function's type
+    switch (Gsym[id].type)
+    {
+        case P_CHAR:
+            fprintf(Outfile, "\tmovzbl\t%s, %%eax\n", breglist[reg]);
+            break;
+        case P_INT:
+            fprintf(Outfile, "\tmovl\t%s, %%eax\n", dreglist[reg]);
+            break;
+        case P_LONG:
+            fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
+            break;
+        default:
+            fatald("Bad function type in cgreturn:", Gsym[id].type);
+    }
+    
+    cgjump(Gsym[id].endlabel);
 }
