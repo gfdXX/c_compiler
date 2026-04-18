@@ -33,7 +33,7 @@ static int arithop(int tokentype)
 {
     if (tokentype > T_EOF && tokentype < T_INTLIT)
     {
-        return(tokentype);
+        return (tokentype);
     }
     
     fatald("Syntax error, token", tokentype);

@@ -10,7 +10,7 @@ struct ASTnode *mkastnode(int op, struct ASTnode *left,
 
     n = (struct ASTnode *) malloc(sizeof(struct ASTnode));
 
-    if(n == NULL)
+    if (n == NULL)
     {
         fatal("Unable to malloc in mkastnode()");
     }

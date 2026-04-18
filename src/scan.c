@@ -28,7 +28,7 @@ static int next(void)
         Line++;
     }
 
-    return c;
+    return (c);
 }
 
 static void putback(int c)
@@ -98,6 +98,12 @@ static int keyword(char *s)
                 return (T_ELSE);
             }
             break;
+        // case 'f':
+        //     if (!strcmp(s, "for"))
+        //     {
+        //         return (T_FOR);
+        //     }
+        //     break;
         case 'i':
             if (!strcmp(s, "if"))
             {
@@ -118,6 +124,12 @@ static int keyword(char *s)
             if (!strcmp(s, "while"))
             {
                 return (T_WHILE);
+            }
+            break;
+        case 'v':
+            if (!strcmp(s, "void"))
+            {
+                return (T_VOID);
             }
             break;
     }

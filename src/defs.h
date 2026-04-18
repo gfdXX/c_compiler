@@ -44,6 +44,8 @@ enum
     T_IF,
     T_ELSE,
     T_WHILE,
+    // T_FOR,
+    T_VOID,
 };
 
 enum
@@ -69,6 +71,7 @@ enum
     A_GLUE,
     A_IF,
     A_WHILE,
+    A_FUNCTION,
 };
 
 struct ASTnode

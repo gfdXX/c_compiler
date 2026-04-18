@@ -2,6 +2,9 @@
 #include "data.h"
 #include "decl.h"
 
+// Prototypes
+static struct ASTnode *single_statement(void);
+
 static struct ASTnode *print_statement(void)
 {
     struct ASTnode *tree;
@@ -11,8 +14,6 @@ static struct ASTnode *print_statement(void)
 
     tree = binexpr(0);
     tree = mkastunary(A_PRINT, tree, 0);
-
-    semi();
 
     return (tree);
 }
@@ -35,13 +36,11 @@ static struct ASTnode *assignment_statement(void)
     left = binexpr(0);
 
     tree = mkastnode(A_ASSIGN, left, NULL, right, 0);
-
-    semi();
     
     return (tree);
 }
 
-struct ASTnode *if_statement(void)
+static struct ASTnode *if_statement(void)
 {
     struct ASTnode *condAST, *trueAST, *falseAST = NULL;
     
@@ -68,7 +67,7 @@ struct ASTnode *if_statement(void)
     return (mkastnode(A_IF, condAST, trueAST, falseAST, 0));
 }
 
-struct ASTnode *while_statement(void)
+static struct ASTnode *while_statement(void)
 {
     struct ASTnode *condAST, *bodyAST;
     
@@ -89,6 +88,61 @@ struct ASTnode *while_statement(void)
     return (mkastnode(A_WHILE, condAST, NULL, bodyAST, 0));
 }
 
+// static struct ASTnode *for_statement(void)
+// {
+//     struct ASTnode *condAST, *bodyAST;
+//     struct ASTnode *preopAST, *postopAST;
+//     struct ASTnode *tree;
+    
+//     match(T_FOR, "for");
+//     lparen();
+
+//     preopAST = single_statement();
+//     semi();
+
+//     condAST = binexpr(0);
+//     if (condAST->op < A_EQ || condAST->op > A_GE)
+//     {
+//         fatal("Bad comparison operator");
+//     }
+    
+//     semi();
+
+//     postopAST = single_statement();
+//     rparen();
+
+//     bodyAST = compound_statement();
+
+//     tree = mkastnode(A_GLUE, bodyAST, NULL, postopAST, 0);
+
+//     // Make a WHILE loop with the condition and this new body
+//     tree = mkastnode(A_WHILE, condAST, NULL, tree, 0);
+
+//     return (mkastnode(A_GLUE, preopAST, NULL, tree, 0));
+// }
+
+static struct ASTnode *single_statement(void)
+{
+    switch (Token.token)
+    {
+        case T_PRINT:
+            return (print_statement());
+        case T_INT:
+            var_declaration();
+            return (NULL);      // No AST generated here
+        case T_IDENT:
+            return (assignment_statement());
+        case T_IF:
+            return (if_statement());
+        case T_WHILE:
+            return (while_statement());
+        // case T_FOR:
+        //     return (for_statement());
+        default:
+            fatald("Syntax error, token", Token.token);
+    }
+}
+
 struct ASTnode *compound_statement(void)
 {
     struct ASTnode *left = NULL;
@@ -98,32 +152,14 @@ struct ASTnode *compound_statement(void)
 
     while (1)
     {
-        switch (Token.token)
+        tree = single_statement();
+
+        if (tree != NULL && (tree->op ==A_PRINT || tree->op == A_ASSIGN))
         {
-            case T_PRINT:
-                tree = print_statement();
-                break;
-            case T_INT:
-                var_declaration();
-                tree = NULL;
-                break;
-            case T_IDENT:
-                tree = assignment_statement();
-                break;
-            case T_IF:
-                tree = if_statement();
-                break;
-            case T_WHILE:
-                tree = while_statement();
-                break;
-            case T_RBRACE:
-                rbrace();
-                return (left);
-            default:
-                fatald("Syntax error, token", Token.token);
+            semi();
         }
 
-        if (tree)
+        if (tree != NULL)
         {
             if (left == NULL)
             {
@@ -133,6 +169,12 @@ struct ASTnode *compound_statement(void)
             {
                 left = mkastnode(A_GLUE, left, NULL, tree, 0);
             }
+        }
+
+        if (Token.token == T_RBRACE)
+        {
+            rbrace();
+            return (left);
         }
         
     }

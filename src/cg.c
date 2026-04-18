@@ -32,8 +32,8 @@ static int alloc_register(void)
     {
         if (freereg[i])
         {
-            freereg[i]= 0;
-            return(i);
+            freereg[i] = 0;
+            return (i);
         }
     }
 
@@ -86,17 +86,8 @@ void cgpreamble()
         "\tmovl\t%eax, %esi\n"
         "\tleaq	.LC0(%rip), %rdi\n"
         "\tmovl	$0, %eax\n"
-        "\tcall	printf@PLT\n"
-        "\tnop\n"
-        "\tleave\n"
-        "\tret\n"
-        "\n"
-        "\t.globl\tmain\n"
-        "\t.type\tmain, @function\n"
-        "main:\n"
-        "\tpushq\t%rbp\n"
-        "\tmovq	%rsp, %rbp\n",
-        Outfile
+        "\tcall	printf@PLT\n" "\tnop\n" "\tleave\n" "\tret\n" "\n"
+        , Outfile
     );
 }
 
@@ -109,15 +100,23 @@ void cgpreamble()
  *          - Returns from main function
  * @note This function must be called after generating all executable code
  */
-void cgpostamble()
+void cgfuncpreamble(char *name)
 {
-    fputs
-    (
+    fprintf(Outfile,
+        "\t.text\n"
+        "\t.globl\t%s\n"
+        "\t.type\t%s, @function\n"
+        "%s:\n" "\tpushq\t%%rbp\n"
+        "\tmovq\t%%rsp, %%rbp\n", name, name, name);
+}
+
+void cgfuncpostamble()
+{
+    fprintf(Outfile,
         "\tmovl	$0, %eax\n"
         "\tpopq	%rbp\n"
-        "\tret\n",
-        Outfile
-    );
+        "\tret\n"
+        , Outfile);
 }
 
 /**
@@ -136,7 +135,7 @@ int cgloadint(int value)
 
     // Print out the code to initialise it
     fprintf(Outfile, "\tmovq\t$%d, %s\n", value, reglist[r]);
-    return(r);
+    return (r);
 }
 
 /**
@@ -154,7 +153,7 @@ int cgloadglob(char *identifier)
 
     // Print out the code to initialise it
     fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", identifier, reglist[r]);
-    return(r);
+    return (r);
 }
 
 /**
@@ -171,7 +170,7 @@ int cgadd(int r1, int r2)
     fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r1], reglist[r2]);
     free_register(r1);
 
-    return(r2);
+    return (r2);
 }
 
 /**
@@ -205,7 +204,7 @@ int cgsub(int r1, int r2)
     fprintf(Outfile, "\tsubq\t%s, %s\n", reglist[r2], reglist[r1]);
     free_register(r2);
 
-    return(r1);
+    return (r1);
 }
 
 /**
@@ -228,7 +227,7 @@ int cgdiv(int r1, int r2)
     fprintf(Outfile, "\tmovq\t%%rax,%s\n", reglist[r1]);
     free_register(r2);
 
-    return(r1);
+    return (r1);
 }
 
 /**

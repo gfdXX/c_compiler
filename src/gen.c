@@ -98,6 +98,11 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
             genfreeregs();
 
             return (NOREG);
+        case A_FUNCTION:
+            cgfuncpreamble(Gsym[n->v.id].name);
+            genAST(n->left, NOREG, n->op);
+            cgfuncpostamble();
+            return (NOREG);
     }
 
     // General AST node handling below
@@ -132,7 +137,8 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
             {
                 return (cgcompare_and_jump(n->op, leftreg, rightreg, reg));
             }
-            else{
+            else
+            {
                 return (cgcompare_and_set(n->op, leftreg, rightreg));
             }
         case A_INTLIT:
@@ -157,11 +163,6 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
 void genpreamble()
 {
     cgpreamble();
-}
-
-void genpostamble()
-{
-    cgpostamble();
 }
 
 void genfreeregs()
