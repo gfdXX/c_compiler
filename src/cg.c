@@ -112,11 +112,7 @@ void cgfuncpreamble(char *name)
 
 void cgfuncpostamble()
 {
-    fprintf(Outfile,
-        "\tmovl	$0, %eax\n"
-        "\tpopq	%rbp\n"
-        "\tret\n"
-        , Outfile);
+    fputs("\tmovl	$0, %eax\n" "\tpopq	%rbp\n" "\tret\n", Outfile);
 }
 
 /**
