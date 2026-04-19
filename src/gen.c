@@ -321,6 +321,7 @@ void genpreamble()
 void genpostamble()
 {
     cgpostamble();
+    fputs("\t.section .note.GNU-stack,\"\",@progbits\n", Outfile);
 }
 
 void genfreeregs()

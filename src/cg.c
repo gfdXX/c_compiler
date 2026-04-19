@@ -228,9 +228,9 @@ int cgloadglob(int id, int op)
         if (op == A_PREDEC)
         {
             fprintf(Outfile, "\tdecq\t%s(%%rip)\n", Symtable[id].name);
-            fprintf(Outfile, "\tmovq\t%s(%%rip), %s\n", Symtable[id].name,
-            reglist[r]);
         }
+        fprintf(Outfile, "\tmovq\t%s(%%rip), %s\n", Symtable[id].name,
+            reglist[r]);
         if (op == A_POSTINC)
         {
             fprintf(Outfile, "\tincq\t%s(%%rip)\n", Symtable[id].name);
@@ -253,9 +253,9 @@ int cgloadglob(int id, int op)
                 if (op == A_PREDEC)
                 {
                     fprintf(Outfile, "\tdecb\t%s(%%rip)\n", Symtable[id].name);
-                    fprintf(Outfile, "\tmovzbq\t%s(%%rip), %s\n", Symtable[id].name,
-                    reglist[r]);
                 }
+                fprintf(Outfile, "\tmovzbq\t%s(%%rip), %s\n", Symtable[id].name,
+                    reglist[r]);
                 if (op == A_POSTINC)
                 {
                     fprintf(Outfile, "\tincb\t%s(%%rip)\n", Symtable[id].name);
@@ -263,8 +263,8 @@ int cgloadglob(int id, int op)
                 if (op == A_POSTDEC)
                 {
                     fprintf(Outfile, "\tdecb\t%s(%%rip)\n", Symtable[id].name);
-                    break;
                 }
+                break;
             case P_INT:
                 if (op == A_PREINC)
                 {
@@ -273,9 +273,9 @@ int cgloadglob(int id, int op)
                 if (op == A_PREDEC)
                 {
                     fprintf(Outfile, "\tdecl\t%s(%%rip)\n", Symtable[id].name);
-                    fprintf(Outfile, "\tmovslq\t%s(%%rip), %s\n", Symtable[id].name,
-                    reglist[r]);
                 }
+                fprintf(Outfile, "\tmovslq\t%s(%%rip), %s\n", Symtable[id].name,
+                    reglist[r]);
                 if (op == A_POSTINC)
                 {
                     fprintf(Outfile, "\tincl\t%s(%%rip)\n", Symtable[id].name);
@@ -283,8 +283,8 @@ int cgloadglob(int id, int op)
                 if (op == A_POSTDEC)
                 {
                     fprintf(Outfile, "\tdecl\t%s(%%rip)\n", Symtable[id].name);
-                    break;
                 }
+                break;
             default:
                 fatald("Bad type in cgloadglob:", Symtable[id].type);
         }
@@ -302,7 +302,8 @@ int cgloadglob(int id, int op)
  * @param[in] op The operation to perform (pre- or post-increment/decrement)
  * @return Return the number of the register
  */
-int cgloadlocal(int id, int op) {
+int cgloadlocal(int id, int op)
+{
     // Get a new register
     int r = alloc_register();
 
@@ -316,9 +317,9 @@ int cgloadlocal(int id, int op) {
         if (op == A_PREDEC)
         {
             fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", Symtable[id].posn);
-            fprintf(Outfile, "\tmovq\t%d(%%rbp), %s\n", Symtable[id].posn,
-                reglist[r]);
         }
+        fprintf(Outfile, "\tmovq\t%d(%%rbp), %s\n", Symtable[id].posn,
+            reglist[r]);
         if (op == A_POSTINC)
         {
             fprintf(Outfile, "\tincq\t%d(%%rbp)\n", Symtable[id].posn);
@@ -327,7 +328,7 @@ int cgloadlocal(int id, int op) {
         {
             fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", Symtable[id].posn);
         }
-    }
+    } 
     else
     {
         switch (Symtable[id].type)
@@ -340,9 +341,9 @@ int cgloadlocal(int id, int op) {
                 if (op == A_PREDEC)
                 {
                     fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", Symtable[id].posn);
-                    fprintf(Outfile, "\tmovzbq\t%d(%%rbp), %s\n", Symtable[id].posn,
-                        reglist[r]);
                 }
+                fprintf(Outfile, "\tmovzbq\t%d(%%rbp), %s\n", Symtable[id].posn,
+                    reglist[r]);
                 if (op == A_POSTINC)
                 {
                     fprintf(Outfile, "\tincb\t%d(%%rbp)\n", Symtable[id].posn);
@@ -350,8 +351,8 @@ int cgloadlocal(int id, int op) {
                 if (op == A_POSTDEC)
                 {
                     fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", Symtable[id].posn);
-                    break;
                 }
+                break;
             case P_INT:
                 if (op == A_PREINC)
                 {
@@ -360,9 +361,10 @@ int cgloadlocal(int id, int op) {
                 if (op == A_PREDEC)
                 {
                     fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", Symtable[id].posn);
-                    fprintf(Outfile, "\tmovslq\t%d(%%rbp), %s\n", Symtable[id].posn,
-                        reglist[r]);
                 }
+                fprintf(Outfile, "\tmovslq\t%d(%%rbp), %s\n", Symtable[id].posn,
+                    reglist[r]);
+                
                 if (op == A_POSTINC)
                 {
                     fprintf(Outfile, "\tincl\t%d(%%rbp)\n", Symtable[id].posn);
@@ -370,13 +372,13 @@ int cgloadlocal(int id, int op) {
                 if (op == A_POSTDEC)
                 {
                     fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", Symtable[id].posn);
-                    break;
                 }
-            default:
-                fatald("Bad type in cgloadlocal:", Symtable[id].type);
+                break;
+                default:
+                    fatald("Bad type in cgloadlocal:", Symtable[id].type);
         }
     }
-    
+
     return (r);
 }
 
