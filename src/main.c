@@ -4,6 +4,7 @@
 #undef extern_
 #include "decl.h"
 #include <errno.h>
+#include <unistd.h>
 
 // Given a string with a '.' and at least a 1-character suffix
 // after the '.', change the suffix to be the given character.

@@ -1,6 +1,7 @@
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
+#include <unistd.h>
 
 void match(int t, char *what)
 {
