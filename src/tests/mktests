@@ -2,14 +2,14 @@
 # Make the output files for each test
 
 # Build our compiler if needed
-if [ ! -f ../cwj ]
+if [ ! -f ../run ]
 then (cd ..; make)
 fi
 
-for i in input*c
+for i in input*b
 do if [ ! -f "out.$i" -a ! -f "err.$i" ]
    then
-     ../cwj -o out $i 2> "err.$i"
+     ../run -o out $i 2> "err.$i"
      # If the err file is empty
      if [ ! -s "err.$i" ]
      then

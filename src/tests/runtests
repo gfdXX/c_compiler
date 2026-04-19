@@ -3,12 +3,12 @@
 # against known good output
 
 # Build our compiler if needed
-if [ ! -f ../cwj ]
+if [ ! -f ../run ]
 then (cd ..; make)
 fi
 
 # Try to use each input source file
-for i in input*c
+for i in input*b
 # We can't do anything if there's no file to test against
 do if [ ! -f "out.$i" -a ! -f "err.$i" ]
    then echo "Can't run test on $i, no output file!"
@@ -21,7 +21,7 @@ do if [ ! -f "out.$i" -a ! -f "err.$i" ]
 	  # Print the test name, compile it
 	  # with our compiler
           echo -n $i
-          ../cwj -o out $i
+          ../run -o out $i
           ./out > trial.$i
 
   	  # Compare this agains the correct output
@@ -45,7 +45,7 @@ do if [ ! -f "out.$i" -a ! -f "err.$i" ]
    else if [ -f "err.$i" ]
         then
           echo -n $i
-          ../cwj $i 2> "trial.$i"
+          ../run $i 2> "trial.$i"
           cmp -s "err.$i" "trial.$i"
           if [ "$?" -eq "1" ]
           then echo ": failed"
