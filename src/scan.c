@@ -50,6 +50,47 @@ static int skip(void)
     return (c);
 }
 
+// Return the next character from a character
+// or string literal
+static int scanch(void)
+{
+    int c;
+
+    // Get the next input character and interpret
+    // metacharacters that start with a backslash
+    c = next();
+
+    if (c == '\\')
+    {
+        switch (c = next())
+        {
+            case 'a':
+                return '\a';
+            case 'b':
+                return '\b';
+            case 'f':
+                return '\f';
+            case 'n':
+                return '\n';
+            case 'r':
+                return '\r';
+            case 't':
+                return '\t';
+            case 'v':
+                return '\v';
+            case '\\':
+                return '\\';
+            case '"':
+                return '"';
+            case '\'':
+                return '\'';
+            default:
+                fatalc("unknown escape sequence", c);
+        }
+    }
+    return (c);			// Just an ordinary old character!
+}
+
 static int scanint(int c)
 {
     int k, val = 0;
@@ -63,6 +104,30 @@ static int scanint(int c)
     // We hit a non-integer character, put it back.
     putback(c);
     return (val);
+}
+
+// Scan in a string literal from the input file,
+// and store it in buf[]. Return the length of
+// the string. 
+static int scanstr(char *buf)
+{
+    int i, c;
+
+    // Loop while we have enough buffer space
+    for (i = 0; i < TEXTLEN - 1; i++)
+    {
+        // Get the next char and append to buf
+        // Return when we hit the ending double quote
+        if ((c = scanch()) == '"')
+        {
+            buf[i] = 0;
+            return (i);
+        }
+        buf[i] = c;
+    }
+    // Ran out of buf[] space
+    fatal("String literal too long");
+    return (0);
 }
 
 static int scanident(int c, char *buf, int lim) {
@@ -126,12 +191,6 @@ static int keyword(char *s)
                 return (T_LONG);
             }
             break;
-        case 'p':
-            if (!strcmp(s, "print"))
-            {
-                return (T_PRINT);
-            }
-            break;
         case 'r':
             if (!strcmp(s, "return"))
             {
@@ -168,8 +227,9 @@ void reject_token(struct token *t)
     Rejtoken = t;
 }
 
-int scan(struct token *t)
-{
+// Scan and return the next token found in the input.
+// Return 1 if token valid, 0 if no tokens left.
+int scan(struct token *t) {
     int c, tokentype;
 
     // If we have any rejected token, return it
@@ -179,19 +239,37 @@ int scan(struct token *t)
         Rejtoken = NULL;
         return (1);
     }
-
+    // Skip whitespace
     c = skip();
 
+    // Determine the token based on
+    // the input character
     switch (c)
     {
         case EOF:
             t->token = T_EOF;
             return (0);
         case '+':
-            t->token = T_PLUS;
+            if ((c = next()) == '+')
+            {
+                t->token = T_INC;
+            }
+            else
+            {
+                putback(c);
+                t->token = T_PLUS;
+            }
             break;
         case '-':
-            t->token = T_MINUS;
+            if ((c = next()) == '-')
+            {
+                t->token = T_DEC;
+            }
+            else
+            {
+                putback(c);
+                t->token = T_MINUS;
+            }
             break;
         case '*':
             t->token = T_STAR;
@@ -214,6 +292,21 @@ int scan(struct token *t)
         case ')':
             t->token = T_RPAREN;
             break;
+        case '[':
+            t->token = T_LBRACKET;
+            break;
+        case ']':
+            t->token = T_RBRACKET;
+            break;
+        case '~':
+            t->token = T_INVERT;
+            break;
+        case '^':
+            t->token = T_XOR;
+            break;
+        case ',':
+            t->token = T_COMMA;
+            break;
         case '=':
             if ((c = next()) == '=')
             {
@@ -232,13 +325,16 @@ int scan(struct token *t)
             }
             else
             {
-                fatalc("Unrecognised character", c);
+                putback(c);
+                t->token = T_LOGNOT;
             }
             break;
         case '<':
             if ((c = next()) == '=')
             {
                 t->token = T_LE;
+            } else if (c == '<') {
+                t->token = T_LSHIFT;
             }
             else
             {
@@ -251,33 +347,82 @@ int scan(struct token *t)
             {
                 t->token = T_GE;
             }
+            else if (c == '>')
+            {
+                t->token = T_RSHIFT;
+            } 
             else
             {
                 putback(c);
                 t->token = T_GT;
             }
             break;
+        case '&':
+            if ((c = next()) == '&') 
+            {
+                t->token = T_LOGAND;
+            } 
+            else 
+            {
+                putback(c);
+                t->token = T_AMPER;
+            }
+            break;
+        case '|':
+            if ((c = next()) == '|') 
+            {
+                t->token = T_LOGOR;
+            }
+            else 
+            {
+                putback(c);
+                t->token = T_OR;
+            }
+            break;
+        case '\'':
+            // If it's a quote, scan in the
+            // literal character value and
+            // the trailing quote
+            t->intvalue = scanch();
+            t->token = T_INTLIT;
+
+            if (next() != '\'')
+            {
+                fatal("Expected '\\'' at end of char literal");
+            }
+
+            break;
+        case '"':
+            // Scan in a literal string
+            scanstr(Text);
+            t->token = T_STRLIT;
+
+            break;
         default:
+            // If it's a digit, scan the
+            // literal integer value in
             if (isdigit(c))
             {
                 t->intvalue = scanint(c);
                 t->token = T_INTLIT;
                 break;
-            }
-            else if (isalpha(c) || '_' == c)
+            } 
+            else if (isalpha(c) || '_' == c) 
             {
+                // Read in a keyword or identifier
                 scanident(c, Text, TEXTLEN);
 
-                if (tokentype = keyword(Text))
+                // If it's a recognised keyword, return that token
+                if ((tokentype = keyword(Text)) != 0)
                 {
                     t->token = tokentype;
                     break;
                 }
-
+                // Not a recognised keyword, so it must be an identifier
                 t->token = T_IDENT;
                 break;
             }
-
+            // The character isn't part of any recognised token, error
             fatalc("Unrecognised character", c);
     }
 

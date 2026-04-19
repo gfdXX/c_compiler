@@ -5,79 +5,6 @@
 // Prototypes
 static struct ASTnode *single_statement(void);
 
-static struct ASTnode *print_statement(void)
-{
-    struct ASTnode *tree;
-    int lefttype, righttype;
-    int reg;
-
-    match(T_PRINT, "print");
-
-    tree = binexpr(0);
-    // Ensure the two types are compatible.
-    lefttype = P_INT;
-    righttype = tree->type;
-    if (!type_compatible(&lefttype, &righttype, 0))
-    {
-        fatal("Incompatible types");
-    }
-
-    // Widen the tree if required. 
-    if (righttype)
-    {
-        tree = mkastunary(righttype, P_INT, tree, 0);
-    }
-
-    // Make an print AST tree
-    tree = mkastunary(A_PRINT, P_NONE, tree, 0);
-
-    return (tree);
-}
-
-static struct ASTnode *assignment_statement(void)
-{
-    struct ASTnode *left, *right, *tree;
-    int lefttype, righttype;
-    int id;
-
-    ident();
-
-    if (Token.token == T_LPAREN)
-    {
-        return (funccall());
-    }
-
-    if ((id = findglob(Text)) == -1)
-    {
-        fatals("Undeclared variable", Text);
-    }
-
-    right = mkastleaf(A_LVIDENT, Gsym[id].type, id);
-
-    match(T_ASSIGN, "=");
-
-    left = binexpr(0);
-
-    // Ensure the two types are compatible.
-    lefttype = left->type;
-    righttype = right->type;
-    if (!type_compatible(&lefttype, &righttype, 1))
-    {
-        fatal("Incompatible types");
-    }
-
-    // Widen the left if required.
-    if (lefttype)
-    {
-        left = mkastunary(lefttype, right->type, left, 0);
-    }
-
-    // Make an assignment AST tree
-    tree = mkastnode(A_ASSIGN, P_INT, left, NULL, right, 0);
-    
-    return (tree);
-}
-
 static struct ASTnode *if_statement(void)
 {
     struct ASTnode *condAST, *trueAST, *falseAST = NULL;
@@ -89,7 +16,7 @@ static struct ASTnode *if_statement(void)
 
     if (condAST->op < A_EQ || condAST->op > A_GE)
     {
-        fatal("Bad comparison operator");
+        condAST = mkastunary(A_TOBOOL, condAST->type, condAST, 0);
     }
     
     rparen();
@@ -116,7 +43,7 @@ static struct ASTnode *while_statement(void)
 
     if (condAST->op < A_EQ || condAST->op > A_GE)
     {
-        fatal("Bad comparison operator");
+        condAST = mkastunary(A_TOBOOL, condAST->type, condAST, 0);
     }
     
     rparen();
@@ -141,7 +68,7 @@ static struct ASTnode *while_statement(void)
 //     condAST = binexpr(0);
 //     if (condAST->op < A_EQ || condAST->op > A_GE)
 //     {
-//         fatal("Bad comparison operator");
+//         condAST = mkastunary(A_TOBOOL, condAST->type, condAST, 0);
 //     }
     
 //     semi();
@@ -162,10 +89,9 @@ static struct ASTnode *while_statement(void)
 // Parse a return statement and return its AST
 static struct ASTnode *return_statement(void) {
     struct ASTnode *tree;
-    int returntype, functype;
 
     // Can't return a value if function returns P_VOID
-    if (Gsym[Functionid].type == P_VOID)
+    if (Symtable[Functionid].type == P_VOID)
     {
         fatal("Can't return from a void function");
     }
@@ -178,18 +104,13 @@ static struct ASTnode *return_statement(void) {
     tree = binexpr(0);
 
     // Ensure this is compatible with the function's type
-    returntype = tree->type;
-    functype = Gsym[Functionid].type;
-    if (!type_compatible(&returntype, &functype, 1))
+    tree = modify_type(tree, Symtable[Functionid].type, 0);
+
+    if (tree == NULL)
     {
-        fatal("Incompatible types");
+        fatal("Incompatible type to return");
     }
 
-    // Widen the left if required.
-    if (returntype)
-    tree = mkastunary(returntype, functype, tree, 0);
-
-    // Add on the A_RETURN node
     tree = mkastunary(A_RETURN, P_NONE, tree, 0);
 
     // Get the ')'
@@ -199,17 +120,18 @@ static struct ASTnode *return_statement(void) {
 
 static struct ASTnode *single_statement(void)
 {
+    int type;
+
     switch (Token.token)
     {
-        case T_PRINT:
-            return (print_statement());
         case T_CHAR:
         case T_INT:
         case T_LONG:
-            var_declaration();
-            return (NULL);      // No AST generated here
-        case T_IDENT:
-            return (assignment_statement());
+            type = parse_type();
+            ident();
+            var_declaration(type, C_LOCAL);
+            semi();
+            return (NULL);		// No AST generated here
         case T_IF:
             return (if_statement());
         case T_WHILE:
@@ -219,8 +141,9 @@ static struct ASTnode *single_statement(void)
         case T_RETURN:
             return (return_statement());
         default:
-            fatald("Syntax error, token", Token.token);
+            return (binexpr(0));
     }
+    return (NULL);		// Keep -Wall happy
 }
 
 struct ASTnode *compound_statement(void)
@@ -234,7 +157,7 @@ struct ASTnode *compound_statement(void)
     {
         tree = single_statement();
 
-        if (tree != NULL && (tree->op == A_PRINT || tree->op == A_ASSIGN ||
+        if (tree != NULL && (tree->op == A_ASSIGN ||
 			tree->op == A_RETURN || tree->op == A_FUNCCALL))
         {
             semi();

@@ -1,10 +1,12 @@
-SRCS= cg.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c types.c
+HSRCS= data.h decl.h defs.h
+SRCS= cg.c decl.c expr.c gen.c main.c misc.c \
+	scan.c stmt.c sym.c tree.c types.c
 
-comp1: $(SRCS)
-	cc -o comp1 -g $(SRCS)
+cwj: $(SRCS) $(HSRCS)
+	cc -o cwj -g -Wall $(SRCS)
 
 clean:
-	rm -f comp1 compn *.o *.s out
+	rm -f cwj cwjarm compn *.o *.s out
 
-test: comp1 tests/runtests
+test: cwj tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)
