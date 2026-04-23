@@ -123,8 +123,8 @@ static struct ASTnode *return_statement(void) {
 static struct ASTnode *switch_statement(void)
 {
     struct ASTnode *left, *n, *c, *casetree= NULL, *casetail;
-    int inloop=1, casecount=0;
-    int seendefault=0;
+    int inloop = 1, casecount = 0;
+    int seendefault = 0;
     int ASTop, casevalue;
 
     // Skip the 'switch' and '('
@@ -158,7 +158,8 @@ static struct ASTnode *switch_statement(void)
                 {
                     fatal("No cases in switch");
                 }
-                inloop=0; break;
+                inloop=0;
+                break;
             case T_CASE:
             case T_DEFAULT:
                 // Ensure this isn't after a previous 'default'
@@ -170,11 +171,14 @@ static struct ASTnode *switch_statement(void)
                 // Set the AST operation. Scan the case value if required
                 if (Token.token==T_DEFAULT)
                 {
-                    ASTop= A_DEFAULT; seendefault= 1; scan(&Token);
+                    ASTop= A_DEFAULT;
+                    seendefault= 1;
+                    scan(&Token);
                 }
                 else 
                 {
-                ASTop= A_CASE; scan(&Token);
+                ASTop= A_CASE;
+                scan(&Token);
                 left= binexpr(0);
                 // Ensure the case value is an integer literal
                 if (left->op != A_INTLIT)

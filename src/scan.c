@@ -158,6 +158,10 @@ static int keyword(char *s)
     switch (*s)
     {
         case 'c':
+            if (!strcmp(s, "case"))
+            {
+                return (T_CASE);
+            }
             if (!strcmp(s, "char"))
             {
                 return (T_CHAR);
