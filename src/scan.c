@@ -250,9 +250,7 @@ char *Tstring[] = {
     "+", "-", "*", "/", "++", "--", "~", "!",
     "void", "char", "int", "long",
     "if", "else", "while", "for", "return",
-    "struct", "union", "enum", "typedef",
-    "extern", "break", "continue", "switch",
-    "case", "default",
+    "switch", "case", "default",
     "intlit", "strlit", ";", "identifier",
     "{", "}", "(", ")", "[", "]", ",", ".",
     "->", ":"

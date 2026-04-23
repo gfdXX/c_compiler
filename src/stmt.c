@@ -115,8 +115,9 @@ static struct ASTnode *return_statement(void) {
 
     tree = mkastunary(A_RETURN, P_NONE, tree, 0);
 
-    // Get the ')'
+    // Get the ')' and ';'
     rparen();
+    semi();
     return (tree);
 }
 
@@ -276,8 +277,6 @@ struct ASTnode *compound_statement(int inswitch)
 {
     struct ASTnode *left = NULL;
     struct ASTnode *tree;
-
-    lbrace();
 
     while (1)
     {

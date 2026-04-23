@@ -190,7 +190,7 @@ static struct ASTnode *primary(void)
             rparen();
             return (n);
         default:
-            fatald("Expecting a primary expression, got token", Token.tokstr);
+            fatals("Expecting a primary expression, got token", Token.tokstr);
     }
 
     // Scan in the next token and return the leaf node
