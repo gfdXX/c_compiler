@@ -163,6 +163,12 @@ static int keyword(char *s)
                 return (T_CHAR);
             }
             break;
+        case 'd':
+            if (!strcmp(s, "default"))
+            {
+                return (T_DEFAULT);
+            }
+            break;
         case 'e':
             if (!strcmp(s, "else"))
             {
@@ -207,6 +213,12 @@ static int keyword(char *s)
             if (!strcmp(s, "void"))
             {
                 return (T_VOID);
+            }
+            break;
+        case 's':
+            if (!strcmp(s, "switch"))
+            {
+                return (T_SWITCH);
             }
             break;
     }
