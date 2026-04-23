@@ -1,3 +1,5 @@
+int printf(char *fmt)
+
 int main() {
     int x;
     int y;

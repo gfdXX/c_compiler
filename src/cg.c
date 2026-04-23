@@ -116,6 +116,31 @@ static void free_register(int reg)
 void cgpreamble()
 {
     freeall_registers();
+    cgtextseg();
+    fprintf(Outfile,
+        "# internal switch(expr) routine\n"
+        "# %%rsi = switch table, %%rax = expr\n"
+        "# from SubC: http://www.t3x.org/subc/\n"
+        "\n"
+        "switch:\n"
+        "        pushq   %%rsi\n"
+        "        movq    %%rdx, %%rsi\n"
+        "        movq    %%rax, %%rbx\n"
+        "        cld\n"
+        "        lodsq\n"
+        "        movq    %%rax, %%rcx\n"
+        "next:\n"
+        "        lodsq\n"
+        "        movq    %%rax, %%rdx\n"
+        "        lodsq\n"
+        "        cmpq    %%rdx, %%rbx\n"
+        "        jnz     no\n"
+        "        popq    %%rsi\n"
+        "        jmp     *%%rax\n"
+        "no:\n"
+        "        loop    next\n"
+        "        lodsq\n"
+        "        popq    %%rsi\n" "        jmp     *%%rax\n" "\n");
 }
 
 // Nothing to do
@@ -1055,7 +1080,7 @@ void cgswitch(int reg, int casecount, int toplabel,
     {
         fprintf(Outfile, "\t.quad\t%d, L%d\n", caseval[i], caselabel[i]);
     }
-    
+
     fprintf(Outfile, "\t.quad\tL%d\n", defaultlabel);
 
     // Load the specific registers
