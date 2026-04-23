@@ -208,6 +208,7 @@ struct ASTnode *function_declaration(int type)
     Functionid = id;
 
     // Get the AST tree for the compound statement
+    Looplevel= 0;
     tree = compound_statement();
 
     // If the function type isn't P_VOID ..
@@ -267,7 +268,7 @@ void global_declarations(void)
                 fprintf(stdout, "\n\n");
             }
             
-            genAST(tree, NOLABEL, 0);
+            genAST(tree, NOLABEL, NOLABEL, NOLABEL, 0);
 
             // Now free the symbols associated
             // with this function

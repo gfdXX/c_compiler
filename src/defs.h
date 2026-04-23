@@ -40,11 +40,13 @@ enum
 
     // Other keywords
     T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,
+    T_SWITCH, T_CASE, T_DEFAULT,
 
     // Structural tokens
     T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,
     T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
-    T_LBRACKET, T_RBRACKET, T_COMMA
+    T_LBRACKET, T_RBRACKET, T_COMMA,
+    T_COLON,
 };
 
 // Token structure
@@ -65,7 +67,8 @@ enum
     A_IF, A_WHILE, A_FUNCTION, A_WIDEN, A_RETURN,
     A_FUNCCALL, A_DEREF, A_ADDR, A_SCALE,
     A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,
-    A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL
+    A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,
+    A_SWITCH, A_CASE, A_DEFAULT
 };
 
 // Primitive types. The bottom 4 bits is an integer

@@ -12,6 +12,8 @@ extern_ FILE            *Outfile;
 extern_ char            *Outfilename;	    // Name of file we opened as Outfile
 extern_ struct token    Token;	            // Last token scanned
 extern_ char            Text[TEXTLEN + 1];	// Last identifier scanned
+extern_ int             Looplevel;          // Depth of nested loops
+extern_ int             Switchlevel;		// Depth of nested switches
 extern_ struct symtable Symtable[NSYMBOLS];	// Global symbol table
 
 extern_ int             O_dumpAST;		    // If true, dump the AST trees

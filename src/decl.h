@@ -14,7 +14,8 @@ void dumpAST(struct ASTnode *n, int label, int parentASTop);
 
 // gen.c
 int genlabel(void);
-int genAST(struct ASTnode *n, int reg, int parentASTop);
+int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
+           int loopendlabel, int parentASTop);
 void genpreamble();
 void genpostamble();
 void genfreeregs();
@@ -65,6 +66,8 @@ int cgor(int r1, int r2);
 int cgxor(int r1, int r2);
 int cgshl(int r1, int r2);
 int cgshr(int r1, int r2);
+void cgswitch(int reg, int casecount, int toplabel,
+	int *caselabel, int *caseval, int defaultlabel);
 
 // expr.c
 struct ASTnode *binexpr(int ptp);
