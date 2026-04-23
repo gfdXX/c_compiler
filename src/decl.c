@@ -209,7 +209,7 @@ struct ASTnode *function_declaration(int type)
 
     // Get the AST tree for the compound statement
     Looplevel= 0;
-    tree = compound_statement();
+    tree = compound_statement(0);
 
     // If the function type isn't P_VOID ..
     if (type != P_VOID)

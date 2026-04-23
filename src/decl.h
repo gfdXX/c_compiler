@@ -73,7 +73,7 @@ void cgswitch(int reg, int casecount, int toplabel,
 struct ASTnode *binexpr(int ptp);
 
 // stmt.c
-struct ASTnode *compound_statement(void);
+struct ASTnode *compound_statement(int inswitch);
 
 // misc.c
 void match(int t, char *what);

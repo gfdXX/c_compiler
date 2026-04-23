@@ -2,14 +2,14 @@
 #include "data.h"
 #include "decl.h"
 
-static struct ASTnode *expression_list(void)
+static struct ASTnode *expression_list(int endtoken)
 {
     struct ASTnode *tree = NULL;
     struct ASTnode *child = NULL;
     int exprcount = 0;
 
     // Loop until the final right parentheses
-    while (Token.token != T_RPAREN)
+    while (Token.token != endtoken)
     {
 
         // Parse the next expression and increment the expression count
@@ -20,17 +20,14 @@ static struct ASTnode *expression_list(void)
         // and the new expression as the right child. Store the expression count.
         tree = mkastnode(A_GLUE, P_NONE, tree, NULL, child, exprcount);
 
-        // Must have a ',' or ')' at this point
-        switch (Token.token)
+        // Stop when we reach the end token
+        if (Token.token == endtoken)
         {
-            case T_COMMA:
-                scan(&Token);
-                break;
-            case T_RPAREN:
-                break;
-            default:
-                fatald("Unexpected token in expression list", Token.token);
+            break;
         }
+
+        // Must have a ',' at this point
+        match(T_COMMA, ",");
     }
 
     // Return the tree of expressions
@@ -52,7 +49,7 @@ struct ASTnode *funccall(void) {
     lparen();
 
     // Parse the following expression
-    tree = expression_list();
+    tree = expression_list(T_RPAREN);
 
     // Build the function call AST node. Store the
     // function's return type as this node's type.

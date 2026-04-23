@@ -21,12 +21,12 @@ static struct ASTnode *if_statement(void)
     
     rparen();
 
-    trueAST = compound_statement();
+    trueAST = single_statement();
 
     if (Token.token == T_ELSE)
     {
         scan(&Token);
-        falseAST = compound_statement();
+        falseAST = single_statement();
     }
 
     return (mkastnode(A_IF, P_NONE, condAST, trueAST, falseAST, 0));
@@ -47,8 +47,9 @@ static struct ASTnode *while_statement(void)
     }
     
     rparen();
+
     Looplevel++;
-    bodyAST = compound_statement();
+    bodyAST = single_statement();
     Looplevel--;
 
     return (mkastnode(A_WHILE, P_NONE, condAST, NULL, bodyAST, 0));
@@ -200,7 +201,8 @@ static struct ASTnode *switch_statement(void)
 
                 // Scan the ':' and get the compound expression
                 match(T_COLON, ":");
-                left= compound_statement(); casecount++;
+                left = compound_statement(1);
+                casecount++;
 
                 // Build a sub-tree with the compound statement as the left child
                 // and link it in to the growing A_CASE tree
@@ -232,9 +234,16 @@ static struct ASTnode *switch_statement(void)
 static struct ASTnode *single_statement(void)
 {
     int type;
+    struct ASTnode *stmt;
 
     switch (Token.token)
     {
+        case T_LBRACE:
+            // We have a '{', so this is a compound statement
+            lbrace();
+            stmt = compound_statement(0);
+            rbrace();
+            return(stmt);
         case T_CHAR:
         case T_INT:
         case T_LONG:
@@ -254,12 +263,16 @@ static struct ASTnode *single_statement(void)
         case T_SWITCH:
             return (switch_statement());
         default:
-            return (binexpr(0));
+            // For now, see if this is an expression.
+            // This catches assignment statements.
+            stmt = binexpr(0);
+            semi();
+            return(stmt);
     }
     return (NULL);		// Keep -Wall happy
 }
 
-struct ASTnode *compound_statement(void)
+struct ASTnode *compound_statement(int inswitch)
 {
     struct ASTnode *left = NULL;
     struct ASTnode *tree;
@@ -269,12 +282,6 @@ struct ASTnode *compound_statement(void)
     while (1)
     {
         tree = single_statement();
-
-        if (tree != NULL && (tree->op == A_ASSIGN ||
-			tree->op == A_RETURN || tree->op == A_FUNCCALL))
-        {
-            semi();
-        }
 
         if (tree != NULL)
         {
@@ -290,8 +297,12 @@ struct ASTnode *compound_statement(void)
 
         if (Token.token == T_RBRACE)
         {
-            rbrace();
             return (left);
+        }
+
+        if (inswitch && (Token.token == T_CASE || Token.token == T_DEFAULT))
+        {
+            return(left);
         }
         
     }
