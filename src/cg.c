@@ -112,6 +112,11 @@ static void free_register(int reg)
     freereg[reg] = 1;
 }
 
+void cgfreereg(int reg)
+{
+    free_register(reg);
+}
+
 // Print out the assembly preamble
 void cgpreamble()
 {
@@ -650,10 +655,41 @@ int cgboolean(int r, int op, int label)
  */
 int cgcall(int id, int numargs)
 {
-    // Get a new register
-    int outr = alloc_register();
+    int savedregs[NUMFREEREGS];
+    int savedcount = 0;
+    int stackpad = 0;
+
+    for (int i = 0; i < NUMFREEREGS; i++)
+    {
+        if (!freereg[i])
+        {
+            fprintf(Outfile, "\tpushq\t%s\n", reglist[i]);
+            savedregs[savedcount++] = i;
+        }
+    }
+
+    if ((savedcount + ((numargs > 6) ? (numargs - 6) : 0)) & 1)
+    {
+        fprintf(Outfile, "\tsubq\t$8, %%rsp\n");
+        stackpad = 1;
+    }
+
     // Call the function
     fprintf(Outfile, "\tcall\t%s@PLT\n", Symtable[id].name);
+
+    if (stackpad)
+    {
+        fprintf(Outfile, "\taddq\t$8, %%rsp\n");
+    }
+
+    for (int i = savedcount - 1; i >= 0; i--)
+    {
+        fprintf(Outfile, "\tpopq\t%s\n", reglist[savedregs[i]]);
+    }
+
+    // Get a new register
+    int outr = alloc_register();
+
     // Remove any arguments pushed on the stack
     if (numargs > 6)
     {

@@ -164,7 +164,7 @@ static int gen_funccall(struct ASTnode *n)
             numargs = gluetree->size;
         }
 
-        genfreeregs();
+        cgfreereg(reg);
         gluetree = gluetree->left;
     }
 

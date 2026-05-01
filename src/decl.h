@@ -28,6 +28,7 @@ void genreturn(int reg, int id);
 void cgtextseg();
 void cgdataseg();
 void freeall_registers(void);
+void cgfreereg(int reg);
 void cgpreamble();
 void cgpostamble();
 void cgfuncpreamble(int id);
