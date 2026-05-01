@@ -100,6 +100,8 @@ void clear_symtable(void);
 
 // decl.c
 void var_declaration(int type, int class);
+void b_auto_declaration(void);
+void b_extrn_declaration(void);
 struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 

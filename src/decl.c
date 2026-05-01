@@ -2,6 +2,11 @@
 #include "data.h"
 #include "decl.h"
 
+static int is_type_token(int token)
+{
+    return (token == T_VOID || token == T_CHAR || token == T_INT || token == T_LONG);
+}
+
 // Parse the current token and
 // return a primitive type enum value
 int parse_type(void) {
@@ -106,9 +111,16 @@ static int param_declaration(int id)
     // Loop until the final right parentheses
     while (Token.token != T_RPAREN)
     {
-        // Get the type and identifier
-        // and add it to the symbol table
-        type = parse_type();
+        // B parameters are bare names. Keep accepting C-style typed
+        // parameters so the existing regression tests still run.
+        if (is_type_token(Token.token))
+        {
+            type = parse_type();
+        }
+        else
+        {
+            type = P_LONG;
+        }
         ident();
 
         // We have an existing prototype.
@@ -151,6 +163,96 @@ static int param_declaration(int id)
 
     // Return the count of parameters
     return (paramcnt);
+}
+
+static void b_var_declaration(int class, int name_already_read)
+{
+    int size = 1;
+
+    if (!name_already_read)
+    {
+        ident();
+    }
+
+    if (Token.token == T_LBRACKET)
+    {
+        scan(&Token);
+
+        if (Token.token == T_INTLIT)
+        {
+            size = Token.intvalue;
+            scan(&Token);
+        }
+
+        match(T_RBRACKET, "]");
+
+        if (class == C_LOCAL)
+        {
+            fatal("For now, declaration of local vectors is not implemented");
+        }
+
+        addglob(Text, pointer_to(P_LONG), S_ARRAY, class, size);
+        return;
+    }
+
+    if (Token.token == T_INTLIT)
+    {
+        size = Token.intvalue;
+        scan(&Token);
+    }
+
+    if (class == C_LOCAL)
+    {
+        if (size != 1)
+        {
+            fatal("For now, declaration of local vectors is not implemented");
+        }
+        if (addlocl(Text, P_LONG, S_VARIABLE, class, 1) == -1)
+        {
+            fatals("Duplicate local variable declaration", Text);
+        }
+    }
+    else
+    {
+        addglob(Text, P_LONG, S_VARIABLE, class, size);
+    }
+}
+
+void b_auto_declaration(void)
+{
+    match(T_AUTO, "auto");
+
+    while (1)
+    {
+        b_var_declaration(C_LOCAL, 0);
+
+        if (Token.token == T_SEMI)
+        {
+            semi();
+            return;
+        }
+
+        match(T_COMMA, ",");
+    }
+}
+
+void b_extrn_declaration(void)
+{
+    match(T_EXTRN, "extrn");
+
+    while (1)
+    {
+        ident();
+        addglob(Text, P_LONG, S_FUNCTION, C_GLOBAL, 0);
+
+        if (Token.token == T_SEMI)
+        {
+            semi();
+            return;
+        }
+
+        match(T_COMMA, ",");
+    }
 }
 
 struct ASTnode *function_declaration(int type)
@@ -246,11 +348,18 @@ void global_declarations(void)
 
     while (1)
     {
-        // We have to read past the type and identifier
+        // We have to read past the optional type and identifier
         // to see either a '(' for a function declaration
         // or a ',' or ';' for a variable declaration.
         // Text is filled in by the ident() call.
-        type = parse_type();
+        if (is_type_token(Token.token))
+        {
+            type = parse_type();
+        }
+        else
+        {
+            type = P_LONG;
+        }
         ident();
 
         if (Token.token == T_LPAREN)
@@ -281,7 +390,14 @@ void global_declarations(void)
         {
             // Parse the global variable declaration
             // and skip past the trailing semicolon
-            var_declaration(type, C_GLOBAL);
+            if (type == P_LONG)
+            {
+                b_var_declaration(C_GLOBAL, 1);
+            }
+            else
+            {
+                var_declaration(type, C_GLOBAL);
+            }
             semi();
         }
 

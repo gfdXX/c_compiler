@@ -253,6 +253,12 @@ static struct ASTnode *single_statement(void)
             var_declaration(type, C_LOCAL);
             semi();
             return (NULL);		// No AST generated here
+        case T_AUTO:
+            b_auto_declaration();
+            return (NULL);
+        case T_EXTRN:
+            b_extrn_declaration();
+            return (NULL);
         case T_IF:
             return (if_statement());
         case T_WHILE:

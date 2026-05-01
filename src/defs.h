@@ -39,6 +39,7 @@ enum
     T_VOID, T_CHAR, T_INT, T_LONG,
 
     // Other keywords
+    T_AUTO, T_EXTRN,
     T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,
     T_SWITCH, T_CASE, T_DEFAULT,
 

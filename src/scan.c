@@ -42,12 +42,44 @@ static int skip(void)
 
     c = next();
 
-    while (' ' == c || '\t' == c || '\n' == c || '\r' == c || '\f' == c)
+    while (1)
     {
-        c = next();
+        while (' ' == c || '\t' == c || '\n' == c || '\r' == c || '\f' == c)
+        {
+            c = next();
+        }
+
+        if (c == '/')
+        {
+            int d = next();
+
+            if (d == '*')
+            {
+                int prev = 0;
+
+                while ((c = next()) != EOF)
+                {
+                    if (prev == '*' && c == '/')
+                    {
+                        break;
+                    }
+                    prev = c;
+                }
+
+                if (c == EOF)
+                {
+                    fatal("Unterminated comment");
+                }
+
+                c = next();
+                continue;
+            }
+
+            putback(d);
+        }
+
+        return (c);
     }
-    
-    return (c);
 }
 
 // Return the next character from a character
@@ -157,6 +189,12 @@ static int keyword(char *s)
 {
     switch (*s)
     {
+        case 'a':
+            if (!strcmp(s, "auto"))
+            {
+                return (T_AUTO);
+            }
+            break;
         case 'c':
             if (!strcmp(s, "case"))
             {
@@ -177,6 +215,10 @@ static int keyword(char *s)
             if (!strcmp(s, "else"))
             {
                 return (T_ELSE);
+            }
+            if (!strcmp(s, "extrn"))
+            {
+                return (T_EXTRN);
             }
             break;
         // case 'f':
@@ -246,14 +288,15 @@ void reject_token(struct token *t)
 // List of token strings, for debugging purposes
 char *Tstring[] = {
     "EOF", "=", "||", "&&", "|", "^", "&",
-    "==", "!=", ",", ">", "<=", ">=", "<<", ">>",
+    "==", "!=", "<", ">", "<=", ">=", "<<", ">>",
     "+", "-", "*", "/", "++", "--", "~", "!",
     "void", "char", "int", "long",
+    "auto", "extrn",
     "if", "else", "while", "for", "return",
     "switch", "case", "default",
     "intlit", "strlit", ";", "identifier",
-    "{", "}", "(", ")", "[", "]", ",", ".",
-    "->", ":"
+    "{", "}", "(", ")", "[", "]", ",",
+    ":"
 };
 
 // Scan and return the next token found in the input.
