@@ -232,6 +232,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
             return (cgmul(leftreg, rightreg));
         case A_DIVIDE:
             return (cgdiv(leftreg, rightreg));
+        case A_MODULO:
+            return (cgmod(leftreg, rightreg));
         case A_AND:
             return (cgand(leftreg, rightreg));
         case A_OR:

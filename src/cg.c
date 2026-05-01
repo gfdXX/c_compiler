@@ -501,6 +501,17 @@ int cgdiv(int r1, int r2)
     return (r1);
 }
 
+int cgmod(int r1, int r2)
+{
+    fprintf(Outfile, "\tmovq\t%s,%%rax\n", reglist[r1]);
+    fprintf(Outfile, "\tcqo\n");
+    fprintf(Outfile, "\tidivq\t%s\n", reglist[r2]);
+    fprintf(Outfile, "\tmovq\t%%rdx,%s\n", reglist[r1]);
+    free_register(r2);
+
+    return (r1);
+}
+
 /**
  * @brief Performs bitwise AND of two registers
  * @ingroup CodeGeneration
@@ -1000,6 +1011,8 @@ void cgreturn(int reg, int id) {
             break;
         case P_LONG:
             fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
+            break;
+        case P_VOID:
             break;
         default:
             fatald("Bad function type in cgreturn:", Symtable[id].type);

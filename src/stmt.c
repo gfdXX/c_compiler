@@ -92,14 +92,23 @@ static struct ASTnode *while_statement(void)
 static struct ASTnode *return_statement(void) {
     struct ASTnode *tree;
 
+    // Ensure we have 'return' '('
+    match(T_RETURN, "return");
+
+    if (Token.token == T_SEMI)
+    {
+        tree = mkastleaf(A_INTLIT, P_INT, 0);
+        tree = mkastunary(A_RETURN, P_NONE, tree, 0);
+        semi();
+        return (tree);
+    }
+
     // Can't return a value if function returns P_VOID
     if (Symtable[Functionid].type == P_VOID)
     {
-        fatal("Can't return from a void function");
+        fatal("Can't return a value from a void function");
     }
 
-    // Ensure we have 'return' '('
-    match(T_RETURN, "return");
     lparen();
 
     // Parse the following expression
@@ -239,6 +248,9 @@ static struct ASTnode *single_statement(void)
 
     switch (Token.token)
     {
+        case T_SEMI:
+            semi();
+            return (NULL);
         case T_LBRACE:
             // We have a '{', so this is a compound statement
             lbrace();

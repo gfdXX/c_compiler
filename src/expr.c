@@ -202,7 +202,7 @@ static struct ASTnode *primary(void)
 // We rely on a 1:1 mapping from token to AST operation
 static int binastop(int tokentype)
 {
-    if (tokentype > T_EOF && tokentype <= T_SLASH)
+    if (tokentype > T_EOF && tokentype <= T_MOD)
     {
         return (tokentype);
     }
@@ -223,6 +223,42 @@ static int rightassoc(int tokentype)
     return (0);
 }
 
+static int compound_assign_op(int tokentype)
+{
+    switch (tokentype)
+    {
+        case T_OR:
+        case T_XOR:
+        case T_AMPER:
+        case T_LSHIFT:
+        case T_RSHIFT:
+        case T_PLUS:
+        case T_MINUS:
+        case T_STAR:
+        case T_SLASH:
+        case T_MOD:
+            return (binastop(tokentype));
+        default:
+            return (0);
+    }
+}
+
+static struct ASTnode *dupast(struct ASTnode *n)
+{
+    struct ASTnode *copy;
+
+    if (n == NULL)
+    {
+        return (NULL);
+    }
+
+    copy = mkastnode(n->op, n->type,
+                     dupast(n->left), dupast(n->mid), dupast(n->right),
+                     n->intvalue);
+    copy->rvalue = n->rvalue;
+    return (copy);
+}
+
 // Operator precedence for each token. Must
 // match up with the order of tokens in defs.h
 static int OpPrec[] = {
@@ -232,7 +268,7 @@ static int OpPrec[] = {
     80, 80, 80, 80,		// T_LT, T_GT, T_LE, T_GE
     90, 90,			    // T_LSHIFT, T_RSHIFT
     100, 100,			// T_PLUS, T_MINUS
-    110, 110			// T_STAR, T_SLASH
+    110, 110, 110		// T_STAR, T_SLASH, T_MOD
 };
 
 // Check that we have a binary operator and
@@ -240,7 +276,7 @@ static int OpPrec[] = {
 static int op_precedence(int tokentype)
 {
     int prec;
-    if (tokentype > T_SLASH)
+    if (tokentype > T_MOD)
     {
         fatald("Token with no precedence in op_precedence:", tokentype);
     }
@@ -371,8 +407,8 @@ struct ASTnode *prefix(void)
 struct ASTnode *binexpr(int ptp)
 {
     struct ASTnode *left, *right;
-    struct ASTnode *ltemp, *rtemp;
-    int ASTop;
+    struct ASTnode *ltemp, *rtemp, *target;
+    int ASTop, compoundop;
     int tokentype;
 
     // Get the tree on the left.
@@ -396,6 +432,16 @@ struct ASTnode *binexpr(int ptp)
     {
         // Fetch in the next integer literal
         scan(&Token);
+        compoundop = 0;
+
+        if (tokentype == T_ASSIGN)
+        {
+            compoundop = compound_assign_op(Token.token);
+            if (compoundop)
+            {
+                scan(&Token);
+            }
+        }
 
         // Recursively call binexpr() with the
         // precedence of our token to build a sub-tree
@@ -410,19 +456,47 @@ struct ASTnode *binexpr(int ptp)
             // Make the right tree into an rvalue
             right->rvalue = 1;
 
-            // Ensure the right's type matches the left
-            right = modify_type(right, left->type, 0);
-            if (right == NULL)
+            if (compoundop)
             {
-                fatal("Incompatible expression in assignment");
-            }
+                target = left;
+                left = dupast(target);
+                left->rvalue = 1;
 
-            // Make an assignment AST tree. However, switch
-            // left and right around, so that the right expression's 
-            // code will be generated before the left expression
-            ltemp = left;
-            left = right;
-            right = ltemp;
+                ltemp = modify_type(left, right->type, compoundop);
+                rtemp = modify_type(right, left->type, compoundop);
+
+                if (ltemp == NULL && rtemp == NULL)
+                {
+                    fatal("Incompatible types in compound assignment");
+                }
+                if (ltemp != NULL)
+                {
+                    left = ltemp;
+                }
+                if (rtemp != NULL)
+                {
+                    right = rtemp;
+                }
+
+                left = mkastnode(compoundop, left->type, left, NULL, right, 0);
+                right = target;
+            }
+            else
+            {
+                // Ensure the right's type matches the left
+                right = modify_type(right, left->type, 0);
+                if (right == NULL)
+                {
+                    fatal("Incompatible expression in assignment");
+                }
+
+                // Make an assignment AST tree. However, switch
+                // left and right around, so that the right expression's 
+                // code will be generated before the left expression
+                ltemp = left;
+                left = right;
+                right = ltemp;
+            }
         }
         else
         {

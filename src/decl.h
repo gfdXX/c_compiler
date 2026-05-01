@@ -41,6 +41,7 @@ int cgadd(int r1, int r2);
 int cgsub(int r1, int r2);
 int cgmul(int r1, int r2);
 int cgdiv(int r1, int r2);
+int cgmod(int r1, int r2);
 int cgshlconst(int r, int val);
 int cgcall(int id, int numargs);
 void cgcopyarg(int r, int argposn);

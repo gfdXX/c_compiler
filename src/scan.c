@@ -289,7 +289,7 @@ void reject_token(struct token *t)
 char *Tstring[] = {
     "EOF", "=", "||", "&&", "|", "^", "&",
     "==", "!=", "<", ">", "<=", ">=", "<<", ">>",
-    "+", "-", "*", "/", "++", "--", "~", "!",
+    "+", "-", "*", "/", "%", "++", "--", "~", "!",
     "void", "char", "int", "long",
     "auto", "extrn",
     "if", "else", "while", "for", "return",
@@ -348,6 +348,9 @@ int scan(struct token *t) {
             break;
         case '/':
             t->token = T_SLASH;
+            break;
+        case '%':
+            t->token = T_MOD;
             break;
         case ';':
             t->token = T_SEMI;

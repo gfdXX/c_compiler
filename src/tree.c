@@ -143,6 +143,9 @@ void dumpAST(struct ASTnode *n, int label, int level)
         case A_DIVIDE:
             fprintf(stdout, "A_DIVIDE\n");
             return;
+        case A_MODULO:
+            fprintf(stdout, "A_MODULO\n");
+            return;
         case A_EQ:
             fprintf(stdout, "A_EQ\n");
             return;
