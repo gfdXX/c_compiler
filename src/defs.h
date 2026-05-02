@@ -55,7 +55,7 @@ struct token
 {
     int token;			    // Token type, from the enum list above
     char *tokstr;           // String version of the token
-    int intvalue;			// For T_INTLIT, the integer value
+    int intvalue;			// For T_INTLIT, or assignment sub-op
 };
 
 // AST node types. The first few line up

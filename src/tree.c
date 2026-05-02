@@ -25,6 +25,7 @@ struct ASTnode *mkastnode(int op, int type,
     n->mid = mid;
     n->right = right;
     n->intvalue = intvalue;
+    n->rvalue = 0;
 
     return (n);
 }

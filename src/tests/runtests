@@ -1,6 +1,7 @@
 #!/bin/sh
 # Run each test and compare
 # against known good output
+TIMEOUT=${TEST_TIMEOUT:-5}
 
 # Build our compiler if needed
 if [ ! -f ../run ]
@@ -22,7 +23,10 @@ do if [ ! -f "out.$i" -a ! -f "err.$i" ]
 	  # with our compiler
           echo -n $i
           ../run -o out $i
-          ./out > trial.$i
+          if command -v timeout >/dev/null 2>&1
+          then timeout "$TIMEOUT" ./out > trial.$i
+          else ./out > trial.$i
+          fi
 
   	  # Compare this agains the correct output
           cmp -s "out.$i" "trial.$i"

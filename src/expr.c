@@ -230,6 +230,12 @@ static int compound_assign_op(int tokentype)
         case T_OR:
         case T_XOR:
         case T_AMPER:
+        case T_EQ:
+        case T_NE:
+        case T_LT:
+        case T_GT:
+        case T_LE:
+        case T_GE:
         case T_LSHIFT:
         case T_RSHIFT:
         case T_PLUS:
@@ -409,7 +415,7 @@ struct ASTnode *binexpr(int ptp)
     struct ASTnode *left, *right;
     struct ASTnode *ltemp, *rtemp, *target;
     int ASTop, compoundop;
-    int tokentype;
+    int tokentype, assignop;
 
     // Get the tree on the left.
     // Fetch the next token at the same time.
@@ -430,18 +436,11 @@ struct ASTnode *binexpr(int ptp)
     while ( (op_precedence(tokentype) > ptp) ||
             (rightassoc(tokentype) && op_precedence(tokentype) == ptp))
     {
-        // Fetch in the next integer literal
-        scan(&Token);
-        compoundop = 0;
+        assignop = (tokentype == T_ASSIGN) ? Token.intvalue : 0;
 
-        if (tokentype == T_ASSIGN)
-        {
-            compoundop = compound_assign_op(Token.token);
-            if (compoundop)
-            {
-                scan(&Token);
-            }
-        }
+        // Fetch in the next token
+        scan(&Token);
+        compoundop = compound_assign_op(assignop);
 
         // Recursively call binexpr() with the
         // precedence of our token to build a sub-tree

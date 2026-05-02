@@ -138,6 +138,71 @@ static int scanint(int c)
     return (val);
 }
 
+static int scan_compound_assign(int c)
+{
+    int d;
+
+    switch (c)
+    {
+        case '|':
+            return (T_OR);
+        case '&':
+            return (T_AMPER);
+        case '+':
+            return (T_PLUS);
+        case '-':
+            return (T_MINUS);
+        case '*':
+            return (T_STAR);
+        case '/':
+            return (T_SLASH);
+        case '%':
+            return (T_MOD);
+        case '<':
+            d = next();
+            if (d == '=')
+            {
+                return (T_LE);
+            }
+            if (d == '<')
+            {
+                return (T_LSHIFT);
+            }
+            putback(d);
+            return (T_LT);
+        case '>':
+            d = next();
+            if (d == '=')
+            {
+                return (T_GE);
+            }
+            if (d == '>')
+            {
+                return (T_RSHIFT);
+            }
+            putback(d);
+            return (T_GT);
+        case '=':
+            d = next();
+            if (d == '=')
+            {
+                return (T_EQ);
+            }
+            putback(d);
+            return (0);
+        case '!':
+            d = next();
+            if (d == '=')
+            {
+                return (T_NE);
+            }
+            putback(d);
+            return (0);
+        default:
+            return (0);
+    }
+}
+
 // Scan in a string literal from the input file,
 // and store it in buf[]. Return the length of
 // the string. 
@@ -313,6 +378,7 @@ int scan(struct token *t) {
     }
     // Skip whitespace
     c = skip();
+    t->intvalue = 0;
 
     // Determine the token based on
     // the input character
@@ -386,9 +452,26 @@ int scan(struct token *t) {
             t->token = T_COLON;
             break;
         case '=':
-            if ((c = next()) == '=')
+            c = next();
+            if (c == '=')
             {
-                t->token = T_EQ;
+                int d = next();
+
+                if (d == '=')
+                {
+                    t->token = T_ASSIGN;
+                    t->intvalue = T_EQ;
+                }
+                else
+                {
+                    putback(d);
+                    t->token = T_EQ;
+                }
+            }
+            else if ((tokentype = scan_compound_assign(c)) != 0)
+            {
+                t->token = T_ASSIGN;
+                t->intvalue = tokentype;
             }
             else
             {
