@@ -103,16 +103,16 @@ static struct ASTnode *return_statement(void) {
         return (tree);
     }
 
-    // Can't return a value if function returns P_VOID
-    if (Symtable[Functionid].type == P_VOID)
+    if (Token.token == T_LPAREN)
     {
-        fatal("Can't return a value from a void function");
+        lparen();
+        tree = binexpr(0);
+        rparen();
     }
-
-    lparen();
-
-    // Parse the following expression
-    tree = binexpr(0);
+    else
+    {
+        tree = binexpr(0);
+    }
 
     // Ensure this is compatible with the function's type
     tree = modify_type(tree, Symtable[Functionid].type, 0);
@@ -124,10 +124,25 @@ static struct ASTnode *return_statement(void) {
 
     tree = mkastunary(A_RETURN, P_NONE, tree, 0);
 
-    // Get the ')' and ';'
-    rparen();
     semi();
     return (tree);
+}
+
+static struct ASTnode *goto_statement(void)
+{
+    struct ASTnode *tree;
+
+    match(T_GOTO, "goto");
+
+    if (Token.token == T_IDENT && findsymbol(Text) == -1)
+    {
+        addlabel(Text, 0);
+    }
+
+    tree = binexpr(0);
+    tree->rvalue = 1;
+    semi();
+    return (mkastunary(A_GOTO, P_NONE, tree, 0));
 }
 
 // Parse a switch statement and return its AST
@@ -138,13 +153,19 @@ static struct ASTnode *switch_statement(void)
     int seendefault = 0;
     int ASTop, casevalue;
 
-    // Skip the 'switch' and '('
-    scan(&Token);
-    lparen();
+    match(T_SWITCH, "switch");
 
-    // Get the switch expression, the ')' and the '{'
-    left= binexpr(0);
-    rparen();
+    if (Token.token == T_LPAREN)
+    {
+        lparen();
+        left = binexpr(0);
+        rparen();
+    }
+    else
+    {
+        left = binexpr(0);
+    }
+
     lbrace();
 
     // Ensure that this is of int type
@@ -173,15 +194,13 @@ static struct ASTnode *switch_statement(void)
                 break;
             case T_CASE:
             case T_DEFAULT:
-                // Ensure this isn't after a previous 'default'
-                if (seendefault)
-                {
-                    fatal("case or default after existing default");
-
-                }
                 // Set the AST operation. Scan the case value if required
                 if (Token.token==T_DEFAULT)
                 {
+                    if (seendefault)
+                    {
+                        fatal("Duplicate default");
+                    }
                     ASTop= A_DEFAULT;
                     seendefault= 1;
                     scan(&Token);
@@ -244,6 +263,9 @@ static struct ASTnode *switch_statement(void)
 static struct ASTnode *single_statement(void)
 {
     int type;
+    int id;
+    char name[TEXTLEN + 1];
+    struct token lookahead;
     struct ASTnode *stmt;
 
     switch (Token.token)
@@ -279,8 +301,26 @@ static struct ASTnode *single_statement(void)
         //     return (for_statement());
         case T_RETURN:
             return (return_statement());
+        case T_GOTO:
+            return (goto_statement());
         case T_SWITCH:
             return (switch_statement());
+        case T_IDENT:
+            strcpy(name, Text);
+            scan(&lookahead);
+            if (lookahead.token == T_COLON)
+            {
+                id = addlabel(name, 1);
+                scan(&Token);
+                return (mkastleaf(A_LABEL, P_NONE, id));
+            }
+            reject_token(&lookahead);
+            strcpy(Text, name);
+            Token.token = T_IDENT;
+            Token.tokstr = "identifier";
+            stmt = binexpr(0);
+            semi();
+            return(stmt);
         default:
             // For now, see if this is an expression.
             // This catches assignment statements.

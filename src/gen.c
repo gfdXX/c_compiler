@@ -112,16 +112,17 @@ static int genSWITCH(struct ASTnode *n)
         // Get a label for this case. Store it
         // and the case value in the arrays.
         // Record if it is the default case.
-        caselabel[i] = genlabel();
-        caseval[i] = c->intvalue;
-        cglabel(caselabel[i]);
+        int thislabel = genlabel();
+        cglabel(thislabel);
 
         if (c->op == A_DEFAULT)
         {
-            defaultlabel = caselabel[i];
+            defaultlabel = thislabel;
         }
         else
         {
+            caselabel[casecount] = thislabel;
+            caseval[casecount] = c->intvalue;
             casecount++;
         }
 
@@ -139,6 +140,39 @@ static int genSWITCH(struct ASTnode *n)
     return (NOREG);
 }
 
+static int genTERNARY(struct ASTnode *n)
+{
+    int Lfalse, Lend;
+    int outreg, branchreg;
+
+    Lfalse = genlabel();
+    Lend = genlabel();
+
+    genAST(n->left, Lfalse, NOLABEL, NOLABEL, A_IF);
+    genfreeregs();
+
+    outreg = cgloadint(0, n->type);
+
+    branchreg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
+    cgmove(branchreg, outreg);
+    if (branchreg != outreg)
+    {
+        cgfreereg(branchreg);
+    }
+    cgjump(Lend);
+
+    cglabel(Lfalse);
+    branchreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+    cgmove(branchreg, outreg);
+    if (branchreg != outreg)
+    {
+        cgfreereg(branchreg);
+    }
+
+    cglabel(Lend);
+    return (outreg);
+}
+
 // Generate the code to copy the arguments of a
 // function call to its parameters, then call the
 // function itself. Return the register that holds 
@@ -148,6 +182,7 @@ static int gen_funccall(struct ASTnode *n)
     struct ASTnode *gluetree = n->left;
     int reg;
     int numargs = 0;
+    int callreg;
 
     // If there is a list of arguments, walk this list
     // from the last argument (right-hand child) to the
@@ -168,9 +203,14 @@ static int gen_funccall(struct ASTnode *n)
         gluetree = gluetree->left;
     }
 
-    // Call the function, clean up the stack (based on numargs),
-    // and return its result
-    return (cgcall(n->id, numargs));
+    if (n->id >= 0)
+    {
+        return (cgcall(n->id, numargs));
+    }
+
+    n->mid->rvalue = 1;
+    callreg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
+    return (cgcallreg(callreg, numargs));
 }
 
 // Given an AST, an optional label, and the AST op
@@ -191,6 +231,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
             return (genWHILE(n));
         case A_SWITCH:
             return (genSWITCH(n));
+        case A_TERNARY:
+            return (genTERNARY(n));
         case A_FUNCCALL:
             return (gen_funccall(n));
         case A_GLUE:
@@ -205,7 +247,10 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
             // Generate the function's preamble before the code
             // in the child sub-tree
             cgfuncpreamble(n->id);
-            genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
+            if (n->left)
+            {
+                genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
+            }
             cgfuncpostamble(n->id);
             return (NOREG);
     }
@@ -265,6 +310,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
             return (cgloadint(n->intvalue, n->type));
         case A_STRLIT:
             return (cgloadglobstr(n->id));
+        case A_LABELADDR:
+            return (cgloadlabel(n->id));
         case A_IDENT:
             // Load our value if we are an rvalue
             // or we are being dereferenced
@@ -306,6 +353,12 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
             return (cgwiden(leftreg, n->left->type, n->type));
         case A_RETURN:
             cgreturn(leftreg, Functionid);
+            return (NOREG);
+        case A_GOTO:
+            cgjumpreg(leftreg);
+            return (NOREG);
+        case A_LABEL:
+            cglabel(Symtable[n->id].endlabel);
             return (NOREG);
         case A_ADDR:
             return (cgaddress(n->id));

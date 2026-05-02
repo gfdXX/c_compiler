@@ -92,6 +92,33 @@ static int scanch(void)
     // metacharacters that start with a backslash
     c = next();
 
+    if (c == '*')
+    {
+        switch (c = next())
+        {
+            case '0':
+                return '\0';
+            case 'e':
+                return EOF;
+            case '(':
+                return '{';
+            case ')':
+                return '}';
+            case 't':
+                return '\t';
+            case '*':
+                return '*';
+            case '\'':
+                return '\'';
+            case '"':
+                return '"';
+            case 'n':
+                return '\n';
+            default:
+                fatalc("unknown B escape sequence", c);
+        }
+    }
+
     if (c == '\\')
     {
         switch (c = next())
@@ -125,11 +152,11 @@ static int scanch(void)
 
 static int scanint(int c)
 {
-    int k, val = 0;
+    int k, val = 0, base = (c == '0') ? 8 : 10;
 
     while ((k = chrpos("0123456789", c)) >= 0)
     {
-        val = val * 10 + k;
+        val = val * base + k;
         c = next();
     }
 
@@ -260,6 +287,12 @@ static int keyword(char *s)
                 return (T_AUTO);
             }
             break;
+        case 'g':
+            if (!strcmp(s, "goto"))
+            {
+                return (T_GOTO);
+            }
+            break;
         case 'c':
             if (!strcmp(s, "case"))
             {
@@ -347,7 +380,12 @@ void reject_token(struct token *t)
         fatal("Can't reject token twice");
     }
 
-    Rejtoken = t;
+    Rejtoken = malloc(sizeof(struct token));
+    if (Rejtoken == NULL)
+    {
+        fatal("Unable to malloc in reject_token()");
+    }
+    *Rejtoken = *t;
 }
 
 // List of token strings, for debugging purposes
@@ -358,10 +396,10 @@ char *Tstring[] = {
     "void", "char", "int", "long",
     "auto", "extrn",
     "if", "else", "while", "for", "return",
-    "switch", "case", "default",
+    "switch", "case", "default", "goto",
     "intlit", "strlit", ";", "identifier",
     "{", "}", "(", ")", "[", "]", ",",
-    ":"
+    ":", "?"
 };
 
 // Scan and return the next token found in the input.
@@ -372,7 +410,8 @@ int scan(struct token *t) {
     // If we have any rejected token, return it
     if (Rejtoken != NULL)
     {
-        t = Rejtoken;
+        *t = *Rejtoken;
+        free(Rejtoken);
         Rejtoken = NULL;
         return (1);
     }
@@ -450,6 +489,9 @@ int scan(struct token *t) {
             break;
         case ':':
             t->token = T_COLON;
+            break;
+        case '?':
+            t->token = T_QUESTION;
             break;
         case '=':
             c = next();
@@ -541,18 +583,33 @@ int scan(struct token *t) {
             }
             break;
         case '\'':
-            // If it's a quote, scan in the
-            // literal character value and
-            // the trailing quote
-            t->intvalue = scanch();
-            t->token = T_INTLIT;
+        {
+            int first, second, end;
 
-            if (next() != '\'')
+            first = scanch();
+            end = next();
+            if (end == '\'')
             {
-                fatal("Expected '\\'' at end of char literal");
+                t->intvalue = first;
+            }
+            else
+            {
+                second = end;
+                if (second == '*')
+                {
+                    putback(second);
+                    second = scanch();
+                }
+                if (next() != '\'')
+                {
+                    fatal("Expected '\\'' at end of char literal");
+                }
+                t->intvalue = (first << 8) | (second & 0xff);
             }
 
+            t->token = T_INTLIT;
             break;
+        }
         case '"':
             // Scan in a literal string
             scanstr(Text);

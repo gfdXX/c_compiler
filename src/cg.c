@@ -37,6 +37,14 @@ static int newlocaloffset(int type)
     return (-localOffset);
 }
 
+static int newlocalarrayoffset(int type, int elems)
+{
+    int bytes = cgprimsize(value_at(type)) * elems;
+
+    localOffset += (bytes > 4) ? bytes : 4;
+    return (-localOffset);
+}
+
 // List of available registers and their names.
 // We need a list of byte and doubleword registers, too
 // The list also includes the registers used to
@@ -202,7 +210,15 @@ void cgfuncpreamble(int id)
         } 
         else 
         {
-            Symtable[i].posn = newlocaloffset(Symtable[i].type);
+            if (Symtable[i].stype == S_ARRAY)
+            {
+                Symtable[i].posn =
+                    newlocalarrayoffset(Symtable[i].type, Symtable[i].size);
+            }
+            else
+            {
+                Symtable[i].posn = newlocaloffset(Symtable[i].type);
+            }
         }
     }
 
@@ -425,6 +441,23 @@ int cgloadglobstr(int id)
     int r = alloc_register();
     fprintf(Outfile, "\tleaq\tL%d(%%rip), %s\n", id, reglist[r]);
     return (r);
+}
+
+int cgloadlabel(int id)
+{
+    int r = alloc_register();
+
+    fprintf(Outfile, "\tleaq\tL%d(%%rip), %s\n", Symtable[id].endlabel,
+            reglist[r]);
+    return (r);
+}
+
+void cgmove(int from, int to)
+{
+    if (from != to)
+    {
+        fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[from], reglist[to]);
+    }
 }
 
 /**
@@ -664,7 +697,7 @@ int cgboolean(int r, int op, int label)
  * @param[in] id Identifier of the function to call
  * @return The number of the register containing the result
  */
-int cgcall(int id, int numargs)
+static int cgcall_common(int callreg, int id, int numargs)
 {
     int savedregs[NUMFREEREGS];
     int savedcount = 0;
@@ -686,7 +719,14 @@ int cgcall(int id, int numargs)
     }
 
     // Call the function
-    fprintf(Outfile, "\tcall\t%s@PLT\n", Symtable[id].name);
+    if (id >= 0)
+    {
+        fprintf(Outfile, "\tcall\t%s@PLT\n", Symtable[id].name);
+    }
+    else
+    {
+        fprintf(Outfile, "\tcall\t*%s\n", reglist[callreg]);
+    }
 
     if (stackpad)
     {
@@ -709,6 +749,19 @@ int cgcall(int id, int numargs)
 
     // and copy the return value into our register
     fprintf(Outfile, "\tmovq\t%%rax, %s\n", reglist[outr]);
+    return (outr);
+}
+
+int cgcall(int id, int numargs)
+{
+    return (cgcall_common(NOREG, id, numargs));
+}
+
+int cgcallreg(int r, int numargs)
+{
+    int outr = cgcall_common(r, -1, numargs);
+
+    free_register(r);
     return (outr);
 }
 
@@ -888,6 +941,34 @@ void cgglobsym(int id)
     }
 }
 
+void cgglobsym_with_inits(int id, int initcount, int *initval, char **initname)
+{
+    int i;
+
+    cgdataseg();
+    fprintf(Outfile, "\t.globl\t%s\n", Symtable[id].name);
+    fprintf(Outfile, "%s:", Symtable[id].name);
+
+    for (i = 0; i < Symtable[id].size; i++)
+    {
+        if (i < initcount)
+        {
+            if (initname[i])
+            {
+                fprintf(Outfile, "\t.quad\t%s\n", initname[i]);
+            }
+            else
+            {
+                fprintf(Outfile, "\t.quad\t%d\n", initval[i]);
+            }
+        }
+        else
+        {
+            fprintf(Outfile, "\t.quad\t0\n");
+        }
+    }
+}
+
 /**
  * @brief Generate a global string and its start label
  * @ingroup CodeGeneration
@@ -955,6 +1036,12 @@ void cglabel(int l)
 void cgjump(int l) 
 {
     fprintf(Outfile, "\tjmp\tL%d\n", l);
+}
+
+void cgjumpreg(int reg)
+{
+    fprintf(Outfile, "\tjmp\t*%s\n", reglist[reg]);
+    free_register(reg);
 }
     
 /**

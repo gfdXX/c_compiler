@@ -220,6 +220,18 @@ void dumpAST(struct ASTnode *n, int label, int level)
         case A_NEGATE:
             fprintf(stdout, "A_NEGATE\n");
             return;
+        case A_TERNARY:
+            fprintf(stdout, "A_TERNARY\n");
+            return;
+        case A_GOTO:
+            fprintf(stdout, "A_GOTO\n");
+            return;
+        case A_LABEL:
+            fprintf(stdout, "A_LABEL %s\n", Symtable[n->id].name);
+            return;
+        case A_LABELADDR:
+            fprintf(stdout, "A_LABELADDR %s\n", Symtable[n->id].name);
+            return;
         default:
             fatald("Unknown dumpAST operator", n->op);
     }

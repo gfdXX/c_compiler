@@ -41,13 +41,13 @@ enum
     // Other keywords
     T_AUTO, T_EXTRN,
     T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,
-    T_SWITCH, T_CASE, T_DEFAULT,
+    T_SWITCH, T_CASE, T_DEFAULT, T_GOTO,
 
     // Structural tokens
     T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,
     T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
     T_LBRACKET, T_RBRACKET, T_COMMA,
-    T_COLON,
+    T_COLON, T_QUESTION,
 };
 
 // Token structure
@@ -70,7 +70,8 @@ enum
     A_FUNCCALL, A_DEREF, A_ADDR, A_SCALE,
     A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,
     A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,
-    A_SWITCH, A_CASE, A_DEFAULT
+    A_SWITCH, A_CASE, A_DEFAULT, A_TERNARY,
+    A_GOTO, A_LABEL, A_LABELADDR
 };
 
 // Primitive types. The bottom 4 bits is an integer
@@ -109,7 +110,7 @@ enum {
 // Structural types
 enum
 {
-  S_VARIABLE, S_FUNCTION, S_ARRAY
+  S_VARIABLE, S_FUNCTION, S_ARRAY, S_LABEL
 };
 
 // Storage classes

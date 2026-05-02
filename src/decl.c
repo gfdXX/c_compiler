@@ -7,6 +7,19 @@ static int is_type_token(int token)
     return (token == T_VOID || token == T_CHAR || token == T_INT || token == T_LONG);
 }
 
+static void checklabels(void)
+{
+    int i;
+
+    for (i = Locls + 1; i < NSYMBOLS; i++)
+    {
+        if (Symtable[i].stype == S_LABEL && !Symtable[i].posn)
+        {
+            fatals("Undefined label", Symtable[i].name);
+        }
+    }
+}
+
 // Parse the current token and
 // return a primitive type enum value
 int parse_type(void) {
@@ -48,6 +61,8 @@ int parse_type(void) {
 
 void var_declaration(int type, int class)
 {
+    int id;
+
       // Text now has the identifier's name.
     // If the next token is a '['
     if (Token.token == T_LBRACKET)
@@ -60,13 +75,19 @@ void var_declaration(int type, int class)
         {
             // Add this as a known array and generate its space in assembly.
             // We treat the array as a pointer to its elements' type
-                if (class == C_LOCAL)
+            if (class == C_LOCAL)
+            {
+                if (addlocl(Text, pointer_to(type), S_ARRAY, class,
+                            Token.intvalue) == -1)
                 {
-                    fatal("For now, declaration of local arrays is not implemented");
+                    fatals("Duplicate local array declaration", Text);
                 }
+            }
             else
             {
-                addglob(Text, pointer_to(type), S_ARRAY, class, Token.intvalue);
+                id = addglob(Text, pointer_to(type), S_ARRAY, class,
+                             Token.intvalue);
+                genglobsym(id);
             }
         }
         // Ensure we have a following ']'
@@ -86,7 +107,8 @@ void var_declaration(int type, int class)
         }
         else
         {
-            addglob(Text, type, S_VARIABLE, class, 1);
+            id = addglob(Text, type, S_VARIABLE, class, 1);
+            genglobsym(id);
         }
     }
 }
@@ -165,9 +187,60 @@ static int param_declaration(int id)
     return (paramcnt);
 }
 
+static int is_initializer_token(int token)
+{
+    return (token == T_INTLIT || token == T_IDENT);
+}
+
+static int parse_global_initializers(int *initval, char **initname)
+{
+    int count = 0;
+
+    if (!is_initializer_token(Token.token))
+    {
+        return (0);
+    }
+
+    while (1)
+    {
+        initname[count] = NULL;
+
+        if (Token.token == T_INTLIT)
+        {
+            initval[count] = Token.intvalue;
+            scan(&Token);
+        }
+        else
+        {
+            initname[count] = strdup(Text);
+            initval[count] = 0;
+            scan(&Token);
+        }
+
+        count++;
+
+        if (Token.token != T_COMMA)
+        {
+            break;
+        }
+
+        scan(&Token);
+        if (!is_initializer_token(Token.token))
+        {
+            fatal("Expected initializer after comma");
+        }
+    }
+
+    return (count);
+}
+
 static void b_var_declaration(int class, int name_already_read)
 {
     int size = 1;
+    int id, initcount = 0;
+    int initval[TEXTLEN];
+    char *initname[TEXTLEN];
+    int isvector = 0;
 
     if (!name_already_read)
     {
@@ -186,26 +259,25 @@ static void b_var_declaration(int class, int name_already_read)
 
         match(T_RBRACKET, "]");
 
-        if (class == C_LOCAL)
-        {
-            fatal("For now, declaration of local vectors is not implemented");
-        }
-
-        addglob(Text, pointer_to(P_LONG), S_ARRAY, class, size);
-        return;
+        isvector = 1;
     }
 
-    if (Token.token == T_INTLIT)
+    if (class == C_LOCAL && !isvector && Token.token == T_INTLIT)
     {
         size = Token.intvalue;
+        isvector = 1;
         scan(&Token);
     }
 
     if (class == C_LOCAL)
     {
-        if (size != 1)
+        if (isvector)
         {
-            fatal("For now, declaration of local vectors is not implemented");
+            if (addlocl(Text, pointer_to(P_LONG), S_ARRAY, class, size) == -1)
+            {
+                fatals("Duplicate local vector declaration", Text);
+            }
+            return;
         }
         if (addlocl(Text, P_LONG, S_VARIABLE, class, 1) == -1)
         {
@@ -214,7 +286,24 @@ static void b_var_declaration(int class, int name_already_read)
     }
     else
     {
-        addglob(Text, P_LONG, S_VARIABLE, class, size);
+        initcount = parse_global_initializers(initval, initname);
+        if (initcount > size)
+        {
+            size = initcount;
+        }
+
+        id = addglob(Text, isvector ? pointer_to(P_LONG) : P_LONG,
+                     isvector ? S_ARRAY : S_VARIABLE, class, size);
+        Symtable[id].size = size;
+
+        if (initcount)
+        {
+            cgglobsym_with_inits(id, initcount, initval, initname);
+        }
+        else
+        {
+            genglobsym(id);
+        }
     }
 }
 
@@ -257,7 +346,7 @@ void b_extrn_declaration(void)
 
 struct ASTnode *function_declaration(int type)
 {
-    struct ASTnode *tree, *finalstmt;
+    struct ASTnode *tree;
     int id;
     int nameslot, endlabel, paramcnt;
 
@@ -315,25 +404,8 @@ struct ASTnode *function_declaration(int type)
     lbrace();
     tree = compound_statement(0);
     rbrace();
+    checklabels();
 
-    // If the function type isn't P_VOID ..
-    if (type != P_VOID)
-    {
-        // Error if no statements in the function
-        if (tree == NULL)
-        {
-            fatal("No statements in function with non-void type");
-        }
-
-        // Check that the last AST operation in the
-        // compound statement was a return statement
-        finalstmt = (tree->op == A_GLUE) ? tree->right : tree;
-
-        if (finalstmt == NULL || finalstmt->op != A_RETURN)
-        {
-            fatal("No return for function with non-void type");
-        }
-    }
     // Return an A_FUNCTION node which has the function's id
     // and the compound statement sub-tree
     return (mkastunary(A_FUNCTION, type, tree, id));

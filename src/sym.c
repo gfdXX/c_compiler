@@ -115,12 +115,6 @@ int addglob(char *name, int type, int stype, int class, int size)
     // Otherwise get a new slot and fill it in
     slot = newglob();
     updatesym(slot, name, type, stype, class, size, 0);
-    // Generate the assembly for the symbol if it's global
-    if (class == C_GLOBAL)
-    {
-        genglobsym(slot);
-    }
-
     // Return the slot number
     return (slot);
 }
@@ -147,6 +141,32 @@ int addlocl(char *name, int type, int stype, int class, int size)
 
     // Return the local symbol's slot
     return (localslot);
+}
+
+int addlabel(char *name, int defining)
+{
+    int slot;
+
+    if ((slot = findlocl(name)) != -1)
+    {
+        if (Symtable[slot].stype != S_LABEL)
+        {
+            fatals("Label name already used as variable", name);
+        }
+        if (defining && Symtable[slot].posn)
+        {
+            fatals("Duplicate label", name);
+        }
+        if (defining)
+        {
+            Symtable[slot].posn = 1;
+        }
+        return (slot);
+    }
+
+    slot = newlocl();
+    updatesym(slot, name, pointer_to(P_LONG), S_LABEL, C_LOCAL, genlabel(), defining);
+    return (slot);
 }
 
 // Given a function's slot number, copy the global parameters

@@ -86,6 +86,14 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op)
         {
             return (tree);
         }
+        if (op == 0 && inttype(rtype))
+        {
+            return (tree);
+        }
+    }
+    if (inttype(ltype) && ptrtype(rtype) && op == 0)
+    {
+        return (tree);
     }
     // We can scale only on A_ADD or A_SUBTRACT operation
     if (op == A_ADD || op == A_SUBTRACT)
